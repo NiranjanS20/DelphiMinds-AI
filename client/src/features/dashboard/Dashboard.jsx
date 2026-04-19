@@ -10,15 +10,17 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Ca
 export default function Dashboard() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
+  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
         const data = await dashboardService.getUserProfile();
-        setProfile(data);
-      } catch {
-        // Use demo data on failure (backend not yet connected)
+        setProfile(data?.data || data || null);
+      } catch (err) {
+        setError(err?.response?.data?.message || 'Unable to load dashboard data right now.');
+        setProfile(null);
       } finally {
         setLoading(false);
       }
@@ -34,6 +36,20 @@ export default function Dashboard() {
   };
 
   if (loading) return <SectionLoader text="Loading your dashboard..." />;
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+        <div className="bg-surface border border-error/30 rounded-xl p-4 text-error">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  const hasResume = Boolean(profile?.resumeCount > 0 || profile?.latestResume);
+  const activityItems = Array.isArray(profile?.recentActivity) ? profile.recentActivity : [];
 
   return (
     <div className="space-y-6">
@@ -56,90 +72,87 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-[140px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Stats */}
         <div className="col-span-1 md:col-span-2 lg:col-span-4 grid grid-cols-2 lg:grid-cols-4 gap-4 h-full">
           <StatCard
             icon={FileText}
             label="Resumes Analyzed"
-            value={profile?.resumeCount || 3}
-            change="2 this week"
-            changeType="positive"
+            value={profile?.resumeCount || 0}
             color="primary"
             delay={0.1}
           />
           <StatCard
             icon={Target}
             label="Skills Detected"
-            value={profile?.skillCount || 24}
-            change="+5"
-            changeType="positive"
+            value={profile?.skillCount || 0}
             color="accent"
             delay={0.2}
           />
           <StatCard
             icon={TrendingUp}
             label="Career Matches"
-            value={profile?.careerMatches || 8}
+            value={profile?.careerMatches || 0}
             color="success"
             delay={0.3}
           />
           <StatCard
             icon={LayoutDashboard}
             label="Completion"
-            value={`${profile?.completion || 72}%`}
-            change="+12%"
-            changeType="positive"
+            value={`${profile?.completion || 0}%`}
             color="warning"
             delay={0.4}
           />
         </div>
 
         {/* Main Content Areas */}
-        <div className="col-span-1 md:col-span-2 lg:col-span-2 row-span-2 h-full">
+        <div className="col-span-1 md:col-span-2 lg:col-span-2 h-full">
           <SkillsWidget skills={profile?.skills} />
         </div>
 
-        <div className="col-span-1 md:col-span-1 lg:col-span-1 row-span-2 h-full">
+        <div className="col-span-1 md:col-span-1 lg:col-span-1 h-full">
           <ProgressWidget progress={profile?.progress} />
         </div>
 
-        <div className="col-span-1 md:col-span-1 lg:col-span-1 row-span-2 h-full">
+        <div className="col-span-1 md:col-span-1 lg:col-span-1 h-full">
           <QuickActions />
         </div>
 
         {/* Recent Activity */}
-        <Card className="col-span-1 md:col-span-2 lg:col-span-4 row-span-auto">
+        <Card className="col-span-1 md:col-span-2 lg:col-span-4">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {[
-              { action: 'Resume analyzed', detail: 'Frontend Developer Resume.pdf', time: '2 hours ago', color: 'primary' },
-              { action: 'Skill gap identified', detail: 'System Design, Cloud Architecture', time: '1 day ago', color: 'warning' },
-              { action: 'Career path matched', detail: 'Senior Full-Stack Engineer', time: '2 days ago', color: 'success' },
-              { action: 'AI mentor session', detail: 'Interview preparation tips', time: '3 days ago', color: 'accent' },
-            ].map((activity, i) => (
+            {!hasResume && (
+              <div className="text-sm text-gray-400">
+                Upload and analyze your resume to unlock personalized dashboard insights.
+              </div>
+            )}
+            {hasResume && activityItems.length === 0 && (
+              <div className="text-sm text-gray-400">
+                No recent activity found for your account yet.
+              </div>
+            )}
+            {hasResume && activityItems.map((activity, i) => (
               <motion.div
-                key={i}
+                key={activity.id || i}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.6 + i * 0.1 }}
                 className="flex items-center gap-4 py-3 border-b border-white/5 last:border-0"
               >
-                <div className={`w-2 h-2 rounded-full shrink-0`}
-                  style={{
-                    backgroundColor: activity.color === 'primary' ? 'var(--color-primary)' :
-                      activity.color === 'accent' ? 'var(--color-ai-accent)' :
-                      activity.color === 'success' ? 'var(--color-accent)' : '#facc15'
-                  }}
-                />
+                <div className="w-2 h-2 rounded-full shrink-0 bg-primary" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white font-medium">{activity.action}</p>
-                  <p className="text-xs text-gray-500 truncate font-mono">{activity.detail}</p>
+                  <p className="text-sm text-white font-medium">{activity.type || 'activity'}</p>
+                  <p className="text-xs text-gray-500 truncate font-mono">
+                    {activity.metadata?.detail || activity.metadata?.message || 'No detail'}
+                  </p>
                 </div>
-                <span className="text-xs text-gray-600 whitespace-nowrap">{activity.time}</span>
+                <span className="text-xs text-gray-600 whitespace-nowrap">
+                  {activity.createdAt ? new Date(activity.createdAt).toLocaleDateString() : ''}
+                </span>
               </motion.div>
             ))}
           </CardContent>
