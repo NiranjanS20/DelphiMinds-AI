@@ -12,6 +12,8 @@ import CareerPath from '../features/career/CareerPath';
 import SkillGap from '../features/career/SkillGap';
 import ChatUI from '../features/chatbot/ChatUI';
 import InsightsDashboard from '../features/insights/InsightsDashboard';
+import LearningReportPage from '../features/learning/LearningReportPage';
+import LearningPathPage from '../features/learning/LearningPathPage';
 
 import LandingPage from '../features/landing/LandingPage';
 
@@ -72,6 +74,22 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <InsightsDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/learning/report"
+        element={
+          <ProtectedRoute>
+            <LearningReportPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/learning/path"
+        element={
+          <ProtectedRoute>
+            <LearningPathPage />
           </ProtectedRoute>
         }
       />
