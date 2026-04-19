@@ -41,6 +41,8 @@ const config = {
     process.env.GEMINI_API_URL ||
     'https://generativelanguage.googleapis.com/v1beta',
 
+  GEMINI_LEARNING_API_KEY: process.env.GEMINI_LEARNING_API_KEY || '',
+
   ADZUNA_BASE_URL:
     process.env.ADZUNA_BASE_URL ||
     process.env.JOB_API_BASE_URL ||
@@ -90,6 +92,8 @@ module.exports = {
   geminiApiKey: config.GEMINI_API_KEY,
   geminiModel: config.GEMINI_MODEL,
   geminiApiUrl: config.GEMINI_API_URL,
+
+  geminiLearningApiKey: config.GEMINI_LEARNING_API_KEY,
 
   adzunaBaseUrl: config.ADZUNA_BASE_URL,
   adzunaAppId: config.ADZUNA_APP_ID,
