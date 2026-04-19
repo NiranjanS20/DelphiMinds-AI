@@ -107,6 +107,9 @@ const normalizeJob = (job) => ({
     [job?.location?.area?.[0], job?.location?.area?.[1]].filter(Boolean).join(', '),
   salary_min: job?.salary_min ?? null,
   salary_max: job?.salary_max ?? null,
+  salary_is_predicted: Number(job?.salary_is_predicted || 0),
+  salary_currency: job?.salary_currency || '',
+  description: job?.description || '',
   redirect_url: job?.redirect_url || '',
 });
 
@@ -235,6 +238,27 @@ const getHistoricalSalary = async ({ query, country } = {}) => {
   return history;
 };
 
+const getJobById = async ({ id, country } = {}) => {
+  const jobId = String(id || '').trim();
+  if (!jobId) {
+    return null;
+  }
+
+  const selectedCountry = normalizeCountry(country);
+  const data = await safeRequest(`/jobs/${selectedCountry}/${encodeURIComponent(jobId)}`);
+
+  // Some Adzuna responses wrap job in "results" while others return the job object directly.
+  if (data && !Array.isArray(data) && data.id) {
+    return normalizeJob(data);
+  }
+
+  if (Array.isArray(data?.results) && data.results.length > 0) {
+    return normalizeJob(data.results[0]);
+  }
+
+  return null;
+};
+
 const getCareerMarketData = async (skills = [], country) => {
   const primaryQuery = Array.isArray(skills) && skills.length > 0 ? skills.slice(0, 3).join(' ') : 'software engineer';
 
@@ -253,6 +277,7 @@ const getCareerMarketData = async (skills = [], country) => {
 
 module.exports = {
   searchJobs,
+  getJobById,
   getCategories,
   getTopCompanies,
   getSalaryHistogram,
