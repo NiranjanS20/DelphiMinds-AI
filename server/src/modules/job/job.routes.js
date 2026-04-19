@@ -12,5 +12,6 @@ router.get('/salary', authMiddleware, jobController.getSalaryHistogram);
 router.get('/geodata', authMiddleware, jobController.getGeoSalaryData);
 router.get('/history', authMiddleware, jobController.getHistoricalSalary);
 router.post('/fit-score', authMiddleware, jobController.calculateFit);
+router.get('/:id', jobController.getJobById);
 
 module.exports = router;
