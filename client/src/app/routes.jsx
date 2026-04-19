@@ -14,6 +14,8 @@ import ChatUI from '../features/chatbot/ChatUI';
 import InsightsDashboard from '../features/insights/InsightsDashboard';
 import LearningReportPage from '../features/learning/LearningReportPage';
 import LearningPathPage from '../features/learning/LearningPathPage';
+import JobListPage from '../features/jobs/JobListPage';
+import JobDetailPage from '../features/jobs/JobDetailPage';
 
 import LandingPage from '../features/landing/LandingPage';
 
@@ -90,6 +92,22 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <LearningPathPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/jobs"
+        element={
+          <ProtectedRoute>
+            <JobListPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/jobs/:id"
+        element={
+          <ProtectedRoute>
+            <JobDetailPage />
           </ProtectedRoute>
         }
       />
