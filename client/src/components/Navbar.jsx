@@ -8,6 +8,7 @@ import {
   Target,
   MessageSquare,
   BarChart3,
+  Briefcase,
   LogOut,
   Menu,
   X,
@@ -21,6 +22,7 @@ import { APP_NAME } from '../utils/constants';
 const iconMap = {
   LayoutDashboard,
   FileText,
+  Briefcase,
   TrendingUp,
   Target,
   MessageSquare,
@@ -30,6 +32,7 @@ const iconMap = {
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: 'LayoutDashboard' },
   { label: 'Resume', path: '/resume', icon: 'FileText' },
+  { label: 'Jobs', path: '/jobs', icon: 'Briefcase' },
   { label: 'Career Path', path: '/career', icon: 'TrendingUp' },
   { label: 'Skill Gap', path: '/skill-gap', icon: 'Target' },
   { label: 'AI Mentor', path: '/chat', icon: 'MessageSquare' },
