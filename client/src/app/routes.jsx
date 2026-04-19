@@ -21,7 +21,7 @@ import LandingPage from '../features/landing/LandingPage';
 
 /**
  * Application route definitions.
- */
+ **/
 export default function AppRoutes() {
   return (
     <Routes>
