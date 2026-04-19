@@ -12,13 +12,46 @@ export default function JobDetailPage() {
   const [job, setJob] = useState(location.state?.job || null);
   const [fitScore, setFitScore] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!job) {
-      navigate('/jobs');
-    }
-  }, [job, navigate]);
+    let mounted = true;
+
+    const fetchJobDetails = async () => {
+      if (!id) {
+        return;
+      }
+
+      setPageLoading(true);
+      try {
+        const response = await apiClient.get(`/jobs/${id}`, {
+          params: {
+            country: (location.state?.country || 'in').toLowerCase(),
+          },
+        });
+
+        const payload = response.data?.data || null;
+        if (mounted && payload) {
+          setJob(payload);
+        }
+      } catch (_err) {
+        if (mounted && !location.state?.job) {
+          setError('Unable to load job details. Please go back and try another listing.');
+        }
+      } finally {
+        if (mounted) {
+          setPageLoading(false);
+        }
+      }
+    };
+
+    fetchJobDetails();
+
+    return () => {
+      mounted = false;
+    };
+  }, [id, location.state]);
 
   const handleCheckFit = async () => {
     if (!job?.description || !job?.title) return;
@@ -27,6 +60,10 @@ export default function JobDetailPage() {
     
     try {
       const response = await apiClient.post('/jobs/fit-score', {
+        jobId: job.id,
+        country: (location.state?.country || 'in').toLowerCase(),
+        company: job.company?.display_name || job.company,
+        location: job.location?.display_name || job.location,
         jobTitle: job.title || job.title_display,
         jobDescription: job.description
       });
@@ -38,7 +75,14 @@ export default function JobDetailPage() {
     }
   };
 
-  if (!job) return <SectionLoader />;
+  if (pageLoading && !job) return <SectionLoader />;
+  if (!job) {
+    return (
+      <div className="max-w-5xl mx-auto p-4">
+        <div className="bg-surface border border-white/5 p-6 rounded-xl text-gray-300">{error || 'Job not found.'}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-4 space-y-6">
@@ -51,7 +95,7 @@ export default function JobDetailPage() {
         <div className="flex flex-wrap gap-6 text-gray-300">
           <div className="flex items-center gap-2"><Briefcase size={18} className="text-gray-400" /> {job.company?.display_name || job.company}</div>
           <div className="flex items-center gap-2"><MapPin size={18} className="text-gray-400" /> {job.location?.display_name || job.location}</div>
-          {(job.salary_min || job.salary_max) && (
+          {(job.salary_min || job.salary_max) ? (
             <div className="flex items-center gap-2 text-green-400 font-medium">
               <DollarSign size={18} />
               <span>
@@ -59,6 +103,8 @@ export default function JobDetailPage() {
                 {job.salary_max ? ` - $${job.salary_max.toLocaleString()}` : ''}
               </span>
             </div>
+          ) : (
+            <div className="text-sm text-gray-500">Salary not disclosed by employer</div>
           )}
         </div>
       </div>
@@ -66,7 +112,9 @@ export default function JobDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-surface border border-white/5 p-6 rounded-xl shadow-md space-y-4">
           <h2 className="text-xl font-semibold border-b border-white/10 pb-4 text-white">Job Description</h2>
-          <p className="text-gray-300 whitespace-pre-line leading-relaxed">{job.description}</p>
+          <p className="text-gray-300 whitespace-pre-line leading-relaxed">
+            {job.description || 'Job description was not provided for this listing.'}
+          </p>
         </div>
 
         <div className="space-y-6">
