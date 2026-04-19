@@ -4,6 +4,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '/api';
 const ENDPOINTS = {
   // Auth & User
   USER_PROFILE: `${API_BASE}/user/profile`,
+  DASHBOARD: `${API_BASE}/analytics/dashboard`,
 
   // Resume
   RESUME_UPLOAD: `${API_BASE}/resume/upload`,
