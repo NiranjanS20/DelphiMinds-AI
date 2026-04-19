@@ -6,7 +6,7 @@ import ENDPOINTS from '../../services/endpoints';
  */
 const dashboardService = {
   async getUserProfile() {
-    const response = await apiClient.get(ENDPOINTS.USER_PROFILE);
+    const response = await apiClient.get(ENDPOINTS.DASHBOARD);
     return response.data;
   },
 
