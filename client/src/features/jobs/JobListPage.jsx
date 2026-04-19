@@ -8,12 +8,14 @@ import { Briefcase, MapPin, DollarSign } from 'lucide-react';
 export default function JobListPage() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [role, setRole] = useState('developer');
   const [location, setLocation] = useState('us');
   const navigate = useNavigate();
 
   const fetchJobs = async () => {
     setLoading(true);
+    setError('');
     try {
       const response = await apiClient.get('/jobs/search', { params: { q: role, country: location } });
       const data = response.data?.data || {};
@@ -22,6 +24,7 @@ export default function JobListPage() {
     } catch (err) {
       console.error('Failed to fetch jobs:', err);
       setJobs([]);
+      setError(err?.response?.data?.message || 'Unable to fetch jobs right now.');
     } finally {
       setLoading(false);
     }
@@ -79,7 +82,7 @@ export default function JobListPage() {
                     <div className="flex items-center gap-2">
                       <MapPin size={16} className="text-gray-400" /> <span>{job.location?.display_name || job.location || 'Remote'}</span>
                     </div>
-                    {(job.salary_min || job.salary_max) && (
+                    {(job.salary_min || job.salary_max) ? (
                       <div className="flex items-center gap-2">
                         <DollarSign size={16} className="text-green-400" /> 
                         <span className="text-green-400 font-medium">
@@ -87,17 +90,19 @@ export default function JobListPage() {
                           {job.salary_max ? ` - $${job.salary_max.toLocaleString()}` : ''}
                         </span>
                       </div>
+                    ) : (
+                      <div className="text-xs text-gray-500">Salary not disclosed by employer</div>
                     )}
                   </div>
                   <div className="text-sm text-gray-400 line-clamp-3">
-                    {job.description}
+                    {job.description || 'Description not available in this listing preview.'}
                   </div>
                 </CardContent>
               </Card>
             ))
           ) : (
             <div className="col-span-full text-center text-gray-400 py-12 bg-surface rounded-xl border border-white/5">
-              No jobs found. Try adjusting your search.
+              {error || 'No jobs found. Try adjusting your search.'}
             </div>
           )}
         </div>
