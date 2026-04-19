@@ -6,6 +6,7 @@ const jobRoutes = require('../modules/job/job.routes');
 const careerRoutes = require('../modules/career/career.routes');
 const chatbotRoutes = require('../modules/chatbot/chatbot.routes');
 const analyticsRoutes = require('../modules/analytics/analytics.routes');
+const learningRoutes = require('../modules/learning/learning.routes');
 
 const router = express.Router();
 
@@ -27,5 +28,6 @@ router.use('/jobs', jobRoutes);
 router.use('/', careerRoutes);
 router.use('/', chatbotRoutes);
 router.use('/', analyticsRoutes);
+router.use('/learning', learningRoutes);
 
 module.exports = router;
