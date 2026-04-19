@@ -6,6 +6,15 @@ const searchJobs = asyncHandler(async (req, res) => {
   return sendSuccess(res, data);
 });
 
+const getJobById = asyncHandler(async (req, res) => {
+  const data = await jobService.getJobById({
+    id: req.params.id,
+    country: req.query.country,
+  });
+
+  return sendSuccess(res, data);
+});
+
 const getCategories = asyncHandler(async (req, res) => {
   const data = await jobService.getCategories(req.query || {});
   return sendSuccess(res, data);
@@ -32,20 +41,16 @@ const getHistoricalSalary = asyncHandler(async (req, res) => {
 });
 
 const calculateFit = asyncHandler(async (req, res) => {
-  const { jobDescription, jobTitle } = req.body;
-  // Get internal user_id derived from auth middleware mapping
+  const payload = req.body || {};
   const userId = req.user.id;
 
-  if (!jobDescription) {
-    return res.status(400).json({ success: false, message: 'Job description is required' });
-  }
-
-  const data = await jobService.calculateJobFitScore(userId, jobDescription, jobTitle);
+  const data = await jobService.calculateJobFitScore(userId, payload);
   return sendSuccess(res, data);
 });
 
 module.exports = {
   searchJobs,
+  getJobById,
   getCategories,
   getTopCompanies,
   getSalaryHistogram,
