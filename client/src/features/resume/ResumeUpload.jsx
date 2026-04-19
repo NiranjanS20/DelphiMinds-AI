@@ -52,25 +52,7 @@ export default function ResumeUpload({ onUploadComplete }) {
       if (onUploadComplete) onUploadComplete(data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to analyze resume. Please try again.');
-      // Use demo result on failure
-      const demoResult = {
-        fileName: file.name,
-        skills: [
-          { name: 'JavaScript', proficiency: 90, category: 'Programming' },
-          { name: 'React', proficiency: 88, category: 'Framework' },
-          { name: 'Node.js', proficiency: 82, category: 'Backend' },
-          { name: 'Python', proficiency: 75, category: 'Programming' },
-          { name: 'SQL', proficiency: 70, category: 'Database' },
-          { name: 'AWS', proficiency: 60, category: 'Cloud' },
-          { name: 'Docker', proficiency: 55, category: 'DevOps' },
-          { name: 'TypeScript', proficiency: 85, category: 'Programming' },
-        ],
-        experience: '4 years',
-        education: 'B.Tech in Computer Science',
-        summary: 'Full-stack developer with strong expertise in React and Node.js ecosystems.',
-      };
-      setResult(demoResult);
-      setError(null);
+      setResult(null);
     } finally {
       setUploading(false);
     }
