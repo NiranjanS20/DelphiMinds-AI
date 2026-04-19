@@ -6,6 +6,11 @@ const getProgress = asyncHandler(async (req, res) => {
   return sendSuccess(res, data);
 });
 
+const getDashboardSummary = asyncHandler(async (req, res) => {
+  const data = await analyticsService.getDashboardSummary(req.user);
+  return sendSuccess(res, data);
+});
+
 const trackActivity = asyncHandler(async (req, res) => {
   const data = await analyticsService.trackActivity(req.user, req.body || {});
   return sendSuccess(res, data, 'Activity tracked', 201);
@@ -14,4 +19,5 @@ const trackActivity = asyncHandler(async (req, res) => {
 module.exports = {
   getProgress,
   trackActivity,
+  getDashboardSummary,
 };
