@@ -7,15 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui
  * Skills overview widget showing extracted skills with proficiency bars.
  */
 export default function SkillsWidget({ skills = [] }) {
-  // Demo skills if none provided
-  const displaySkills = skills.length > 0 ? skills : [
-    { name: 'React', proficiency: 88 },
-    { name: 'Python', proficiency: 75 },
-    { name: 'Machine Learning', proficiency: 62 },
-    { name: 'Node.js', proficiency: 80 },
-    { name: 'SQL', proficiency: 70 },
-    { name: 'System Design', proficiency: 55 },
-  ];
+  const displaySkills = skills.length > 0 ? skills : [];
 
   return (
     <Card className="h-full">
@@ -30,6 +22,9 @@ export default function SkillsWidget({ skills = [] }) {
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {displaySkills.length === 0 && (
+          <p className="text-sm text-gray-400">No resume-derived skills found yet.</p>
+        )}
         {displaySkills.map((skill, index) => (
           <motion.div
             key={skill.name}
@@ -99,13 +94,15 @@ export function StatCard({ icon: Icon, label, value, change, changeType = 'posit
  */
 export function ProgressWidget({ progress = null }) {
   const data = progress || {
-    coursesCompleted: 12,
-    totalCourses: 20,
-    streak: 7,
-    hoursLearned: 48,
+    coursesCompleted: 0,
+    totalCourses: 0,
+    streak: 0,
+    hoursLearned: 0,
   };
 
-  const percentage = Math.round((data.coursesCompleted / data.totalCourses) * 100);
+  const percentage = data.totalCourses > 0
+    ? Math.round((data.coursesCompleted / data.totalCourses) * 100)
+    : 0;
 
   return (
     <Card className="h-full">
