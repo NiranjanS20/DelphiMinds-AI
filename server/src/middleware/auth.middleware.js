@@ -26,6 +26,7 @@ const verifyToken = async (req, _res, next) => {
 
     let internal_id = null;
     let metadata = {};
+    const fallbackEmail = `${decoded.uid}@no-email.delphiminds.local`;
 
     if (userResult.rows.length > 0) {
       internal_id = userResult.rows[0].id;
@@ -37,7 +38,11 @@ const verifyToken = async (req, _res, next) => {
          VALUES ($1, $2, $3)
          ON CONFLICT (firebase_uid) DO UPDATE SET email = EXCLUDED.email
          RETURNING id`,
-        [decoded.uid, decoded.email || '', decoded.name || decoded.displayName || 'User']
+        [
+          decoded.uid,
+          decoded.email || fallbackEmail,
+          decoded.name || decoded.displayName || 'User',
+        ]
       );
       internal_id = newUserResult.rows[0].id;
     }
