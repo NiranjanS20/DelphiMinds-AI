@@ -6,6 +6,7 @@ export const APP_TAGLINE = 'AI Career Intelligence Platform';
 export const NAV_LINKS = [
   { label: 'Dashboard', path: '/dashboard', icon: 'LayoutDashboard' },
   { label: 'Resume', path: '/resume', icon: 'FileText' },
+  { label: 'Jobs', path: '/jobs', icon: 'Briefcase' },
   { label: 'Career Path', path: '/career', icon: 'TrendingUp' },
   { label: 'Skill Gap', path: '/skill-gap', icon: 'Target' },
   { label: 'AI Mentor', path: '/chat', icon: 'MessageSquare' },
