@@ -41,6 +41,8 @@ const resolveMigrationsDir = () => {
     path.resolve(process.cwd(), '..', 'database', 'migrations'),
     path.resolve(process.cwd(), 'migrations'),
     path.resolve(process.cwd(), '..', 'migrations'),
+    path.resolve(__dirname, '..', '..', '..', '..', 'database', 'migrations'),
+    path.resolve(__dirname, '..', '..', '..', 'database', 'migrations'),
   ];
 
   const seen = new Set();
@@ -57,6 +59,43 @@ const resolveMigrationsDir = () => {
   }
 
   return null;
+};
+
+const resolveSchemaFile = () => {
+  const candidates = [
+    path.resolve(process.cwd(), 'database', 'schema.sql'),
+    path.resolve(process.cwd(), '..', 'database', 'schema.sql'),
+    path.resolve(process.cwd(), 'schema.sql'),
+    path.resolve(process.cwd(), '..', 'schema.sql'),
+    path.resolve(__dirname, '..', '..', '..', '..', 'database', 'schema.sql'),
+    path.resolve(__dirname, '..', '..', '..', 'database', 'schema.sql'),
+  ];
+
+  const seen = new Set();
+
+  for (const candidate of candidates) {
+    if (seen.has(candidate)) {
+      continue;
+    }
+    seen.add(candidate);
+
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+      return candidate;
+    }
+  }
+
+  return null;
+};
+
+const runSchemaBootstrap = async () => {
+  const schemaFile = resolveSchemaFile();
+  if (!schemaFile) {
+    logger.warn('schema.sql was not found. Skipping schema bootstrap.');
+    return;
+  }
+
+  const schemaSql = fs.readFileSync(schemaFile, 'utf8');
+  await query(schemaSql);
 };
 
 const runMigrations = async () => {
@@ -102,6 +141,7 @@ const runMigrations = async () => {
 };
 
 const initDb = async () => {
+  await runSchemaBootstrap();
   await runMigrations();
 
   logger.info('Database initialized');
