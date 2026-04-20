@@ -1,5 +1,5 @@
 const { initDb, pool } = require('../config/db');
-
+/*updated migration*/
 const run = async () => {
   try {
     await initDb();
