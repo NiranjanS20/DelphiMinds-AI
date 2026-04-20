@@ -11,6 +11,7 @@ import {
 } from '../firebase/firebaseConfig';
 
 const AuthContext = createContext(null);
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 /**
  * AuthProvider — wraps app with Firebase auth state.
@@ -30,10 +31,46 @@ export function AuthProvider({ children }) {
   }, []);
 
   // Email/password login
+  const syncBackendProfile = async (firebaseUser) => {
+    if (!firebaseUser) {
+      return;
+    }
+
+    try {
+      const token = await firebaseUser.getIdToken();
+      if (import.meta.env.DEV) {
+        console.debug('[Auth] Syncing profile with backend', {
+          uid: firebaseUser.uid,
+          hasToken: Boolean(token),
+        });
+      }
+
+      await fetch(`${API_BASE}/user/profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+        }),
+      });
+    } catch (syncError) {
+      if (import.meta.env.DEV) {
+        console.warn('[Auth] Backend profile sync failed', syncError);
+      }
+    }
+  };
+
   const login = async (email, password) => {
     setError(null);
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
+      setUser(result.user);
+      await syncBackendProfile(result.user);
       return result.user;
     } catch (err) {
       setError(getAuthErrorMessage(err.code));
@@ -49,6 +86,8 @@ export function AuthProvider({ children }) {
       if (displayName) {
         await updateProfile(result.user, { displayName });
       }
+      setUser(auth.currentUser || result.user);
+      await syncBackendProfile(auth.currentUser || result.user);
       return result.user;
     } catch (err) {
       setError(getAuthErrorMessage(err.code));
@@ -61,6 +100,8 @@ export function AuthProvider({ children }) {
     setError(null);
     try {
       const result = await signInWithPopup(auth, googleProvider);
+      setUser(result.user);
+      await syncBackendProfile(result.user);
       return result.user;
     } catch (err) {
       setError(getAuthErrorMessage(err.code));
