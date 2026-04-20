@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LayoutDashboard, FileText, Target, TrendingUp, Sparkles } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -50,6 +51,7 @@ export default function Dashboard() {
 
   const hasResume = Boolean(profile?.resumeCount > 0 || profile?.latestResume);
   const activityItems = Array.isArray(profile?.recentActivity) ? profile.recentActivity : [];
+  const shouldShowNoResume = profile?.hasResume === false || !hasResume;
 
   return (
     <div className="space-y-6">
@@ -70,6 +72,25 @@ export default function Dashboard() {
           <span className="text-sm text-ai-accent font-medium">AI Insights Ready</span>
         </div>
       </motion.div>
+
+      {shouldShowNoResume && (
+        <Card className="border border-warning-500/30">
+          <CardContent className="py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <p className="text-white font-semibold">No resume uploaded yet</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Upload your resume to unlock personalized skills, insights, and job-fit analysis.
+              </p>
+            </div>
+            <Link
+              to="/resume"
+              className="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition"
+            >
+              Upload Resume
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
