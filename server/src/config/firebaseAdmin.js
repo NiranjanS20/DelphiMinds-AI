@@ -6,6 +6,19 @@ const logger = require('../utils/logger');
 
 let initialized = false;
 
+const decodeJwtPayload = (token) => {
+  try {
+    const parts = String(token || '').split('.');
+    if (parts.length < 2) {
+      return null;
+    }
+    const payload = Buffer.from(parts[1], 'base64').toString('utf8');
+    return JSON.parse(payload);
+  } catch (_error) {
+    return null;
+  }
+};
+
 const loadServiceAccountFromFile = () => {
   const configuredPath = env.firebaseServiceAccountPath || env.FIREBASE_SERVICE_ACCOUNT_PATH;
   const fallbackPath = path.resolve(__dirname, 'firebaseServiceAccount.json');
@@ -37,7 +50,7 @@ const loadServiceAccountFromFile = () => {
   }
 };
 
-const initializeFirebase = () => {
+const initializeFirebase = (projectIdHint) => {
   if (initialized || admin.apps.length > 0) {
     initialized = true;
     return;
@@ -63,16 +76,23 @@ const initializeFirebase = () => {
       throw error;
     }
   } else {
-    options.credential = admin.credential.applicationDefault();
+    // For verifyIdToken(), credential is optional when projectId is known.
+    // Keep ADC usage only when explicitly configured in the environment.
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      options.credential = admin.credential.applicationDefault();
+    }
   }
 
-  if (!options.projectId && env.firebaseProjectId) {
-    options.projectId = env.firebaseProjectId;
+  if (!options.projectId && (env.firebaseProjectId || projectIdHint)) {
+    options.projectId = env.firebaseProjectId || projectIdHint;
   }
 
   admin.initializeApp(options);
   initialized = true;
-  logger.info('Firebase Admin initialized');
+  logger.info('Firebase Admin initialized', {
+    projectId: options.projectId || null,
+    hasCredential: Boolean(options.credential),
+  });
 };
 
 const verifyFirebaseToken = async (token) => {
@@ -88,7 +108,10 @@ const verifyFirebaseToken = async (token) => {
     };
   }
 
-  initializeFirebase();
+  const decodedJwt = decodeJwtPayload(token);
+  const projectIdHint = decodedJwt?.aud;
+
+  initializeFirebase(projectIdHint);
   return admin.auth().verifyIdToken(token);
 };
 
