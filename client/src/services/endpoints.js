@@ -1,20 +1,18 @@
 /** API endpoint constants */
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
-
 const ENDPOINTS = {
   // Auth & User
-  USER_PROFILE: `${API_BASE}/user/profile`,
-  DASHBOARD: `${API_BASE}/analytics/dashboard`,
+  USER_PROFILE: '/user/profile',
+  DASHBOARD: '/analytics/dashboard',
 
   // Resume
-  RESUME_UPLOAD: `${API_BASE}/resume/upload`,
+  RESUME_UPLOAD: '/resume/upload',
 
   // Career
-  RECOMMENDATIONS: `${API_BASE}/recommendations`,
-  SKILL_GAP: `${API_BASE}/skill-gap`,
+  RECOMMENDATIONS: '/recommendations',
+  SKILL_GAP: '/skill-gap',
 
   // Chatbot
-  CHAT: `${API_BASE}/chat`,
+  CHAT: '/chat',
 };
 
 export default ENDPOINTS;
