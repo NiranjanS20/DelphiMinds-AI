@@ -2,6 +2,20 @@ const { query } = require('../../config/db');
 const userService = require('../user/user.service');
 const skillsModel = require('../skills/skills.model');
 
+const safeQuery = async (sql, params = [], fallbackRows = []) => {
+  try {
+    return await query(sql, params);
+  } catch (error) {
+    if (/relation .* does not exist/i.test(String(error.message || ''))) {
+      return {
+        rows: fallbackRows,
+        rowCount: fallbackRows.length,
+      };
+    }
+    throw error;
+  }
+};
+
 const getProgress = async (authUser) => {
   const user = await userService.ensureUserFromFirebase(authUser);
   const userSkills = await skillsModel.getUserSkills(user.id);
@@ -18,7 +32,7 @@ const getProgress = async (authUser) => {
           ).toFixed(2)
         );
 
-  const activityResult = await query(
+  const activityResult = await safeQuery(
     `
       SELECT id, activity_type, metadata, created_at
       FROM user_activity
@@ -47,12 +61,13 @@ const getDashboardSummary = async (authUser) => {
   const user = await userService.ensureUserFromFirebase(authUser);
   const userSkills = await skillsModel.getUserSkills(user.id);
 
-  const resumeCountResult = await query(
+  const resumeCountResult = await safeQuery(
     'SELECT COUNT(*)::int AS count FROM resumes WHERE user_id = $1',
-    [user.id]
+    [user.id],
+    [{ count: 0 }]
   );
 
-  const latestResumeResult = await query(
+  const latestResumeResult = await safeQuery(
     `
       SELECT id, parsed_data, status, parsed_at, created_at
       FROM resumes
@@ -60,10 +75,11 @@ const getDashboardSummary = async (authUser) => {
       ORDER BY COALESCE(parsed_at, created_at) DESC
       LIMIT 1
     `,
-    [user.id]
+    [user.id],
+    []
   );
 
-  const learningProgressResult = await query(
+  const learningProgressResult = await safeQuery(
     `
       SELECT
         COUNT(*)::int AS total,
@@ -72,10 +88,11 @@ const getDashboardSummary = async (authUser) => {
       FROM user_progress
       WHERE user_id = $1
     `,
-    [user.id]
+    [user.id],
+    [{ total: 0, completed: 0, avg_score: 0 }]
   );
 
-  const interviewsResult = await query(
+  const interviewsResult = await safeQuery(
     `
       SELECT
         COUNT(*)::int AS total,
@@ -84,10 +101,11 @@ const getDashboardSummary = async (authUser) => {
       FROM interviews
       WHERE user_id = $1
     `,
-    [user.id]
+    [user.id],
+    [{ total: 0, avg_fit: 0, best_fit: 0 }]
   );
 
-  const recentActivityResult = await query(
+  const recentActivityResult = await safeQuery(
     `
       SELECT id, activity_type, metadata, created_at
       FROM user_activity
@@ -95,7 +113,8 @@ const getDashboardSummary = async (authUser) => {
       ORDER BY created_at DESC
       LIMIT 10
     `,
-    [user.id]
+    [user.id],
+    []
   );
 
   const latestResume = latestResumeResult.rows[0] || null;
@@ -127,7 +146,10 @@ const getDashboardSummary = async (authUser) => {
       ? Math.round((Number(progressRow.completed || 0) / Number(progressRow.total || 1)) * 100)
       : 0;
 
+  const hasResume = Number(resumeCountResult.rows[0]?.count || 0) > 0 && Boolean(latestResume);
+
   return {
+    hasResume,
     resumeCount: Number(resumeCountResult.rows[0]?.count || 0),
     skillCount: normalizedSkills.length,
     careerMatches: Number(interviews.total || 0),
