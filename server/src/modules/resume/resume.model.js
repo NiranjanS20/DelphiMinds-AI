@@ -93,9 +93,28 @@ const findResumeByIdForUser = async (id, userId, client) => {
   return mapResume(result.rows[0]);
 };
 
+const findLatestResumeByUser = async (userId, client) => {
+  const result = await getExecutor(client).query(
+    `
+      SELECT *
+      FROM resumes
+      WHERE user_id = $1
+      ORDER BY
+        CASE WHEN status = 'parsed' THEN 0 ELSE 1 END,
+        COALESCE(parsed_at, created_at) DESC,
+        created_at DESC
+      LIMIT 1
+    `,
+    [userId]
+  );
+
+  return mapResume(result.rows[0]);
+};
+
 module.exports = {
   saveResume,
   saveParsedData,
   createResume,
   findResumeByIdForUser,
+  findLatestResumeByUser,
 };
