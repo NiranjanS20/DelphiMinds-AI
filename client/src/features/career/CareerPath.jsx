@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { TrendingUp, ArrowRight, Briefcase, Star, Clock, DollarSign } from 'lucide-react';
 import careerService from './careerService';
 import { SectionLoader } from '../../components/Loader';
@@ -16,6 +17,7 @@ const DEMO_CAREERS = [
     description: 'Build and maintain scalable web applications across the entire stack. Lead technical decisions and mentor juniors.',
     requiredSkills: ['React', 'Node.js', 'PostgreSQL', 'AWS', 'System Design'],
     matchedSkills: ['React', 'Node.js', 'PostgreSQL'],
+    missingSkills: ['AWS', 'System Design'],
     timeToReady: '3-6 months',
   },
   {
@@ -28,6 +30,7 @@ const DEMO_CAREERS = [
     description: 'Design and deploy machine learning models at scale. Work with data pipelines and model optimization.',
     requiredSkills: ['Python', 'TensorFlow', 'SQL', 'Docker', 'Statistics'],
     matchedSkills: ['Python', 'SQL', 'Docker'],
+    missingSkills: ['TensorFlow', 'Statistics'],
     timeToReady: '6-12 months',
   },
   {
@@ -37,10 +40,11 @@ const DEMO_CAREERS = [
     company: 'Mid to Large Companies',
     salary: '$150K - $210K',
     growth: 'High',
-    description: 'Lead engineering teams, define architecture, and drive technical strategy while staying hands-on.',
-    requiredSkills: ['React', 'System Design', 'Leadership', 'Cloud Architecture', 'CI/CD'],
-    matchedSkills: ['React', 'System Design'],
-    timeToReady: '6-9 months',
+    description: 'Lead engineering teams, shape technical architecture, and drive project execution.',
+    requiredSkills: ['System Design', 'Leadership', 'Agile', 'Cloud Architecture'],
+    matchedSkills: ['Agile'],
+    missingSkills: ['System Design', 'Leadership', 'Cloud Architecture'],
+    timeToReady: '12-18 months',
   },
   {
     id: 4,
@@ -52,11 +56,13 @@ const DEMO_CAREERS = [
     description: 'Manage cloud infrastructure, CI/CD pipelines, and ensure system reliability and scalability.',
     requiredSkills: ['Docker', 'Kubernetes', 'AWS', 'Terraform', 'Linux'],
     matchedSkills: ['Docker', 'AWS'],
+    missingSkills: ['Kubernetes', 'Terraform', 'Linux'],
     timeToReady: '9-12 months',
   },
 ];
 
 export default function CareerPath() {
+  const navigate = useNavigate();
   const [careers, setCareers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCareer, setSelectedCareer] = useState(null);
@@ -65,7 +71,12 @@ export default function CareerPath() {
     async function fetchCareers() {
       try {
         const data = await careerService.getRecommendations();
-        setCareers(data.recommendations || data);
+        const recommendations = Array.isArray(data.recommendations) ? data.recommendations : Array.isArray(data) ? data : [];
+        if (recommendations.length > 0) {
+          setCareers(recommendations);
+        } else {
+          setCareers(DEMO_CAREERS);
+        }
       } catch {
         setCareers(DEMO_CAREERS);
       } finally {
@@ -76,6 +87,9 @@ export default function CareerPath() {
   }, []);
 
   if (loading) return <SectionLoader text="Analyzing career paths..." />;
+
+  const safeCareers = Array.isArray(careers) ? careers : [];
+  const hasNoCareers = safeCareers.length === 0;
 
   const getMatchColor = (match) => {
     if (match >= 85) return { bg: 'bg-success-500/15', text: 'text-success-400', bar: 'from-success-400 to-success-500' };
@@ -91,8 +105,22 @@ export default function CareerPath() {
         <p className="text-slate-400 mt-1">AI-powered career matches based on your skills and experience</p>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {careers.map((career, index) => {
+      {hasNoCareers && (
+        <div className="glass-card p-8 text-center">
+          <Briefcase className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-white mb-2">No career recommendations yet</h3>
+          <p className="text-sm text-slate-400 mb-4">
+            Upload your resume to get personalized career path recommendations based on your skills.
+          </p>
+          <Button onClick={() => navigate('/resume')} variant="primary">
+            Upload Resume
+          </Button>
+        </div>
+      )}
+
+      {!hasNoCareers && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {safeCareers.map((career, index) => {
           const matchColor = getMatchColor(career.match);
           const isSelected = selectedCareer?.id === career.id;
 
@@ -173,9 +201,19 @@ export default function CareerPath() {
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
-                  className="mt-4 pt-4 border-t border-glass-border"
+                  className="mt-4 pt-4 border-t border-glass-border flex justify-end"
                 >
-                  <Button variant="outline" size="sm" icon={ArrowRight} iconPosition="right">
+                  <Button 
+                    variant="primary" 
+                    size="md" 
+                    icon={ArrowRight} 
+                    iconPosition="right"
+                    className="w-full sm:w-auto mt-2 font-semibold shadow-lg shadow-brand-500/20"
+                    onClick={() => {
+                      const computedMissingSkills = career.requiredSkills.filter(s => !career.matchedSkills.includes(s));
+                      navigate('/learning/path', { state: { role: career.title, missingSkills: computedMissingSkills } });
+                    }}
+                  >
                     View Full Career Map
                   </Button>
                 </motion.div>
@@ -183,7 +221,8 @@ export default function CareerPath() {
             </motion.div>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
