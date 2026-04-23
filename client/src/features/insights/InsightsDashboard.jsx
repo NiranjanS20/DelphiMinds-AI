@@ -1,10 +1,128 @@
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, TrendingUp, Award, Clock } from 'lucide-react';
 import SkillRadar from './charts/SkillRadar';
 import ProgressChart from './charts/ProgressChart';
 import { StatCard } from '../dashboard/widgets';
+import dashboardService from '../dashboard/dashboardService';
+import { SectionLoader } from '../../components/Loader';
+
+const toRadarData = (skills = []) =>
+  skills.slice(0, 8).map((skill) => ({
+    skill: skill.name,
+    level: Number(skill.proficiency || 0),
+    fullMark: 100,
+  }));
+
+const toProgressData = (skills = [], completion = 0) => {
+  const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
+  const totalSkills = skills.length;
+
+  return monthLabels.map((month, index) => {
+    const ratio = (index + 1) / monthLabels.length;
+
+    return {
+      month,
+      skills: Math.max(0, Math.round(totalSkills * ratio)),
+      progress: Math.max(0, Math.round(Number(completion || 0) * ratio)),
+    };
+  });
+};
+
+const getCategory = (skill = {}) => {
+  const value = String(skill.category || '').toLowerCase();
+  if (value.includes('front')) return 'Frontend';
+  if (value.includes('back')) return 'Backend';
+  if (value.includes('devops') || value.includes('cloud')) return 'DevOps';
+  if (value.includes('ml') || value.includes('data')) return 'Data/ML';
+  return 'Other';
+};
+
+const CATEGORY_COLORS = {
+  Frontend: '#7c5cfc',
+  Backend: '#38bdf8',
+  DevOps: '#4ade80',
+  'Data/ML': '#facc15',
+  Other: '#94a3b8',
+};
 
 export default function InsightsDashboard() {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const data = await dashboardService.getUserProfile();
+        setProfile(data || null);
+      } catch {
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProfile();
+  }, []);
+
+  const skills = useMemo(() => (Array.isArray(profile?.skills) ? profile.skills : []), [profile]);
+  const hasResumeData = Boolean(profile?.hasResume) && skills.length > 0;
+
+  const topSkill = useMemo(() => {
+    if (skills.length === 0) return 'N/A';
+
+    return [...skills].sort((a, b) => Number(b.proficiency || 0) - Number(a.proficiency || 0))[0]?.name || 'N/A';
+  }, [skills]);
+
+  const skillScore = useMemo(() => {
+    if (skills.length === 0) return 0;
+    const sum = skills.reduce((acc, skill) => acc + Number(skill.proficiency || 0), 0);
+    return Math.round(sum / skills.length);
+  }, [skills]);
+
+  const radarData = useMemo(() => toRadarData(skills), [skills]);
+  const progressData = useMemo(
+    () => toProgressData(skills, Number(profile?.completion || 0)),
+    [skills, profile?.completion]
+  );
+
+  const categoryData = useMemo(() => {
+    const buckets = skills.reduce((acc, skill) => {
+      const category = getCategory(skill);
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {});
+
+    const total = Math.max(1, skills.length);
+
+    return Object.entries(buckets).map(([category, count]) => ({
+      category,
+      count,
+      color: CATEGORY_COLORS[category] || CATEGORY_COLORS.Other,
+      percentage: Math.round((count / total) * 100),
+    }));
+  }, [skills]);
+
+  if (loading) return <SectionLoader text="Loading insights..." />;
+
+  if (!hasResumeData) {
+    return (
+      <div className="space-y-6">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 className="text-2xl lg:text-3xl font-bold text-white">Career Insights</h1>
+          <p className="text-slate-400 mt-1">Analytics and trends from your career intelligence data</p>
+        </motion.div>
+
+        <div className="glass-card p-8 text-center">
+          <h2 className="text-lg font-semibold text-white">No resume-driven insights yet</h2>
+          <p className="text-slate-400 text-sm mt-2 max-w-lg mx-auto">
+            Upload and analyze your resume first. Insights will be generated from your extracted skills and progress automatically.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -18,17 +136,17 @@ export default function InsightsDashboard() {
         <StatCard
           icon={BarChart3}
           label="Skill Score"
-          value="78/100"
-          change="+8"
+          value={`${skillScore}/100`}
+          change={`${skills.length} skills`}
           changeType="positive"
-          color="brand"
+          color="primary"
           delay={0.1}
         />
         <StatCard
           icon={TrendingUp}
           label="Growth Rate"
-          value="+24%"
-          change="vs last month"
+          value={`${Math.max(0, Math.round(Number(profile?.completion || 0)))}%`}
+          change="completion"
           changeType="positive"
           color="accent"
           delay={0.2}
@@ -36,15 +154,15 @@ export default function InsightsDashboard() {
         <StatCard
           icon={Award}
           label="Top Skill"
-          value="React"
+          value={topSkill}
           color="success"
           delay={0.3}
         />
         <StatCard
           icon={Clock}
           label="Learning Hours"
-          value="48h"
-          change="+12h"
+          value={`${Number(profile?.progress?.hoursLearned || 0)}h`}
+          change={`${Number(profile?.progress?.coursesCompleted || 0)} courses`}
           changeType="positive"
           color="warning"
           delay={0.4}
@@ -53,8 +171,8 @@ export default function InsightsDashboard() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SkillRadar />
-        <ProgressChart />
+        <SkillRadar data={radarData} />
+        <ProgressChart data={progressData} />
       </div>
 
       {/* Skill distribution */}
@@ -66,12 +184,7 @@ export default function InsightsDashboard() {
       >
         <h3 className="text-base font-semibold text-white mb-4">Skill Distribution by Category</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { category: 'Frontend', count: 8, color: '#7c5cfc', percentage: 35 },
-            { category: 'Backend', count: 5, color: '#38bdf8', percentage: 22 },
-            { category: 'DevOps', count: 4, color: '#4ade80', percentage: 17 },
-            { category: 'Data/ML', count: 6, color: '#facc15', percentage: 26 },
-          ].map((cat, i) => (
+          {categoryData.map((cat, i) => (
             <motion.div
               key={cat.category}
               initial={{ opacity: 0, y: 10 }}
@@ -116,10 +229,22 @@ export default function InsightsDashboard() {
         </h3>
         <div className="space-y-3">
           {[
-            { text: 'Your React skills are in the top 15% of analyzed profiles. Consider sharing knowledge through mentoring or tech talks.', type: 'success' },
-            { text: 'System Design is your biggest gap for senior roles. Prioritize this for the next 3 months to unlock 4 new career paths.', type: 'warning' },
-            { text: 'You\'ve improved 24% faster than the average user this month. Keep up the momentum!', type: 'info' },
-            { text: 'Adding cloud certifications (AWS/GCP) would increase your career match scores by an estimated 15-20%.', type: 'tip' },
+            {
+              text: `${topSkill} is currently your strongest skill. Position it prominently in resume bullet points for better recruiter scanning.`,
+              type: 'success',
+            },
+            {
+              text: `You currently have ${skills.length} verified skills. Expanding breadth in one weaker category can increase your role coverage.`,
+              type: 'warning',
+            },
+            {
+              text: `Learning completion stands at ${Math.max(0, Math.round(Number(profile?.completion || 0)))}%. Keep a weekly routine to sustain progression.`,
+              type: 'info',
+            },
+            {
+              text: `Your average skill score is ${skillScore}/100. Add measurable outcomes to projects to improve ATS relevance and ranking.`,
+              type: 'tip',
+            },
           ].map((insight, i) => {
             const styles = {
               success: 'bg-success-500/10 border-success-500/20 text-success-300',
