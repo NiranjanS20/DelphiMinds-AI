@@ -1,32 +1,40 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import apiClient from '../../services/apiClient';
+import ENDPOINTS from '../../services/endpoints';
 
 export default function LearningPathPage() {
+  const location = useLocation();
+  const initialState = location.state || {};
+
   const [loading, setLoading] = useState(false);
   const [pathData, setPathData] = useState(null);
+  const [error, setError] = useState(null);
   
-  const [role, setRole] = useState('Full Stack Engineer');
+  const [role, setRole] = useState(initialState.role || 'Full Stack Engineer');
   const [time, setTime] = useState('10 hours/week');
+  const [missingSkills] = useState(initialState.missingSkills || ['PostgreSQL', 'Docker', 'AWS']);
 
   const handleGenerate = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch('http://localhost:5000/api/learning/path', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          role,
-          timeCommitment: time,
-          level: 'intermediate',
-          missingSkills: ['PostgreSQL', 'Docker', 'AWS']
-        })
+      const res = await apiClient.post(ENDPOINTS.LEARNING_PATH, {
+        role,
+        timeCommitment: time,
+        level: 'intermediate',
+        missingSkills,
       });
-      const data = await res.json();
+      const data = res.data;
       if (data.success) {
         setPathData(data.data);
+      } else {
+        setError(data.message || 'Failed to generate learning path');
       }
     } catch (err) {
       console.error('Failed to fetch path', err);
+      setError(err.response?.data?.message || err.message || 'Unable to generate learning path. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -74,6 +82,11 @@ export default function LearningPathPage() {
               placeholder="e.g. 5 hours/week"
             />
           </div>
+          {error && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
           <button 
             type="submit" 
             disabled={loading}
