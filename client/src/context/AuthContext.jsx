@@ -9,9 +9,9 @@ import {
   onAuthStateChanged,
   updateProfile,
 } from '../firebase/firebaseConfig';
+import apiClient from '../services/apiClient';
 
 const AuthContext = createContext(null);
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 /**
  * AuthProvider — wraps app with Firebase auth state.
@@ -37,26 +37,17 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      const token = await firebaseUser.getIdToken();
       if (import.meta.env.DEV) {
         console.debug('[Auth] Syncing profile with backend', {
           uid: firebaseUser.uid,
-          hasToken: Boolean(token),
         });
       }
 
-      await fetch(`${API_BASE}/user/profile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-        }),
+      await apiClient.post('/user/profile', {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
       });
     } catch (syncError) {
       if (import.meta.env.DEV) {
