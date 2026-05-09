@@ -5,13 +5,21 @@ const env = require('./env');
 const logger = require('../utils/logger');
 
 const pool = env.databaseUrl
-  ? new Pool({ connectionString: env.databaseUrl })
+  ? new Pool({
+      connectionString: env.databaseUrl,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    })
   : new Pool({
       host: env.dbHost,
       port: env.dbPort,
       database: env.dbName,
       user: env.dbUser,
       password: env.dbPassword,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
     });
 
 pool.on('error', (error) => {
@@ -143,7 +151,6 @@ const runMigrations = async () => {
 const initDb = async () => {
   await runSchemaBootstrap();
   await runMigrations();
-
   logger.info('Database initialized');
 };
 
