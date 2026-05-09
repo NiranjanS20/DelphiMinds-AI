@@ -22,13 +22,14 @@ router.get('/health', (_req, res) => {
   });
 });
 
+// Properly namespaced routes
 router.use('/user', userRoutes);
 router.use('/resume', resumeRoutes);
 router.use('/skills', skillsRoutes);
 router.use('/jobs', jobRoutes);
-router.use('/', careerRoutes);
-router.use('/', chatbotRoutes);
-router.use('/', analyticsRoutes);
+router.use('/career', careerRoutes);
+router.use('/chatbot', chatbotRoutes);
+router.use('/analytics', analyticsRoutes);
 router.use('/learning', learningRoutes);
 router.use('/ats', atsRoutes);
 
