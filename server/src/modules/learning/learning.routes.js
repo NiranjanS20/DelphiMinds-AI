@@ -1,11 +1,11 @@
 const express = require('express');
+const authMiddleware = require('../../middleware/auth.middleware');
 const learningController = require('./learning.controller');
 
 const router = express.Router();
 
-router.post('/report', learningController.getDiagnosticReport); // Using POST conceptually to send user metrics, despite REST conventions allowing GET args
-router.get('/report', learningController.getDiagnosticReport); // Provided per requirements
-
-router.post('/path', learningController.generatePath);
+// Routes are mounted under /learning in routes/index.js
+router.post('/report', authMiddleware, learningController.getDiagnosticReport);
+router.post('/path', authMiddleware, learningController.generatePath);
 
 module.exports = router;
