@@ -27,42 +27,28 @@ const verifyToken = async (req, _res, next) => {
       path: req.originalUrl,
     });
 
-    // Fetch internal user ID from users table using firebase_uid
-    const userResult = await query(
-      'SELECT id, metadata FROM users WHERE firebase_uid = $1 LIMIT 1',
-      [decoded.uid]
-    );
-
-    let internal_id = null;
-    let metadata = {};
+    // Atomic upsert — eliminates race condition on concurrent first requests
     const fallbackEmail = `${decoded.uid}@no-email.delphiminds.local`;
-
-    if (userResult.rows.length > 0) {
-      internal_id = userResult.rows[0].id;
-      metadata = userResult.rows[0].metadata || {};
-      logger.debug('Auth middleware: mapped existing user', {
-        uid: decoded.uid,
-        userId: internal_id,
-      });
-    } else {
-      // Upsert/Create the user if they don't exist yet but valid firebase token is true
-      const newUserResult = await query(
-        `INSERT INTO users (firebase_uid, email, name)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (firebase_uid) DO UPDATE SET email = EXCLUDED.email
-         RETURNING id`,
-        [
-          decoded.uid,
-          decoded.email || fallbackEmail,
-          decoded.name || decoded.displayName || 'User',
-        ]
-      );
-      internal_id = newUserResult.rows[0].id;
-      logger.info('Auth middleware: created user from Firebase identity', {
-        uid: decoded.uid,
-        userId: internal_id,
-      });
-    }
+    const upsertResult = await query(
+      `INSERT INTO users (firebase_uid, email, name)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (firebase_uid) DO UPDATE
+         SET email = COALESCE(NULLIF(EXCLUDED.email, ''), users.email),
+             name = COALESCE(NULLIF(EXCLUDED.name, ''), users.name),
+             updated_at = NOW()
+       RETURNING id, metadata`,
+      [
+        decoded.uid,
+        decoded.email || fallbackEmail,
+        decoded.name || decoded.displayName || 'User',
+      ]
+    );
+    const internal_id = upsertResult.rows[0].id;
+    const metadata = upsertResult.rows[0].metadata || {};
+    logger.debug('Auth middleware: user resolved', {
+      uid: decoded.uid,
+      userId: internal_id,
+    });
 
     req.user = {
       ...decoded,
@@ -101,4 +87,3 @@ const verifyToken = async (req, _res, next) => {
 };
 
 module.exports = verifyToken;
-module.exports.verifyToken = verifyToken;
