@@ -4,7 +4,7 @@ const { AppError } = require('../../middleware/error.middleware');
 
 /**
  * Get Diagnostic Report
- * GET /api/learning/report
+ * POST /api/learning/report
  */
 const getDiagnosticReport = asyncHandler(async (req, res) => {
   // Assuming body has data for now, or fetch from user entity. 
