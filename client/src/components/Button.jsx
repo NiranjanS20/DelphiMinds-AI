@@ -4,18 +4,23 @@ import { cn } from '../utils/helpers';
 
 /**
  * Reusable Button component with variants, sizes, and loading state.
+ *
+ * Design tokens: Sage primary, Violet AI accent.
+ * Standardization: rounded-xl, font-display for labels, consistent focus rings.
  */
 const variants = {
   primary:
-    'bg-gradient-to-r from-primary to-ai-accent hover:from-primary/90 hover:to-ai-accent/90 text-white glow-primary border border-transparent',
+    'bg-primary hover:bg-primary-hover text-white shadow-sm border border-transparent',
+  ai:
+    'bg-gradient-to-r from-ai-accent to-primary hover:opacity-90 text-white glow-ai border border-transparent',
   secondary:
-    'bg-surface hover:bg-surface/80 text-gray-200 border border-white/10 hover:border-primary/50',
+    'bg-surface-50 hover:bg-surface-100 text-text-main border border-border hover:border-border-hover',
   ghost:
-    'bg-transparent hover:bg-white/5 text-gray-300 hover:text-white',
+    'bg-transparent hover:bg-surface-50 text-text-muted hover:text-text-main',
   danger:
-    'bg-error hover:bg-error/90 text-white shadow-lg shadow-error/25',
+    'bg-error hover:bg-error/90 text-white shadow-lg shadow-error/20',
   outline:
-    'bg-transparent border border-primary/50 text-primary hover:bg-primary/10 hover:border-primary',
+    'bg-transparent border border-primary/50 text-primary hover:bg-primary-muted hover:border-primary',
 };
 
 const sizes = {
@@ -46,9 +51,9 @@ export default function Button({
       disabled={disabled || loading}
       onClick={onClick}
       className={cn(
-        'inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 cursor-pointer',
+        'inline-flex items-center justify-center gap-2 font-semibold font-display transition-all duration-200 cursor-pointer',
         'disabled:opacity-50 disabled:cursor-not-allowed',
-        'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         variants[variant],
         sizes[size],
         className
