@@ -4,7 +4,7 @@ export function Card({ className, children, ...props }) {
   return (
     <div
       className={cn(
-        'bg-surface rounded-xl border border-white/5 shadow-md',
+        'bg-surface rounded-xl border border-border shadow-sm transition-colors',
         className
       )}
       {...props}
@@ -28,7 +28,7 @@ export function CardHeader({ className, children, ...props }) {
 export function CardTitle({ className, children, ...props }) {
   return (
     <h3
-      className={cn('font-semibold leading-none tracking-tight text-white', className)}
+      className={cn('font-semibold font-display leading-none tracking-tight text-text-main', className)}
       {...props}
     >
       {children}
@@ -41,5 +41,13 @@ export function CardContent({ className, children, ...props }) {
     <div className={cn('p-6 pt-0', className)} {...props}>
       {children}
     </div>
+  );
+}
+
+export function CardDescription({ className, children, ...props }) {
+  return (
+    <p className={cn('text-sm text-text-muted', className)} {...props}>
+      {children}
+    </p>
   );
 }
