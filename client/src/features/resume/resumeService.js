@@ -70,15 +70,22 @@ const resumeService = {
   /**
    * Upload a resume file for AI analysis.
    * @param {File} file
+   * @param {Function} [onProgress] - Progress callback (0-100)
    * @returns {Promise<object>} Parsed resume data
    */
-  async uploadResume(file) {
+  async uploadResume(file, onProgress) {
     const formData = new FormData();
     formData.append('resume', file);
 
     const response = await apiClient.post(ENDPOINTS.RESUME_UPLOAD, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 60000, // 60s for large files
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percent);
+        }
+      },
     });
 
     const payload = response.data?.data || response.data || {};
