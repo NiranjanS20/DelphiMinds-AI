@@ -1,16 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Bot, Sparkles, Trash2 } from 'lucide-react';
+import { Send, Bot, Sparkles, Trash2, AlertCircle } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import chatbotService from './chatbotService';
+import chatSession from '../../services/chatSession';
 import { CHAT_PLACEHOLDER_MESSAGES } from '../../utils/constants';
-
-const DEMO_RESPONSES = [
-  "Based on your skill profile, I'd recommend focusing on system design and cloud architecture. These are the most in-demand skills for senior engineering roles right now.\n\nHere's a suggested learning path:\n1. Start with distributed systems fundamentals\n2. Practice with real-world architecture problems\n3. Get hands-on with AWS/GCP services\n4. Build a portfolio project showcasing these skills",
-  "Great question! For transitioning into a Machine Learning role, you'll want to:\n\n• Strengthen your Python skills (you're at 75% — aim for 85%+)\n• Learn scikit-learn, TensorFlow, or PyTorch\n• Study linear algebra and statistics\n• Build 2-3 ML projects for your portfolio\n• Consider Andrew Ng's ML Specialization on Coursera\n\nYour existing programming foundation is solid — the transition is very achievable!",
-  "Looking at your resume analysis, your strongest areas are frontend development and API design. Here are some interview tips:\n\n🎯 **Technical Preparation:**\n- Practice React optimization patterns\n- Review common system design questions\n- Prepare examples of scalable architectures you've built\n\n💡 **Behavioral Tips:**\n- Use the STAR method for storytelling\n- Quantify your impact (e.g., 'improved load time by 40%')\n- Prepare questions about team culture and tech stack",
-  "I'd suggest exploring these career paths based on your profile:\n\n1. **Senior Full-Stack Engineer** — High demand, great salary growth\n2. **Technical Lead** — Leverage your broad skill set\n3. **Solutions Architect** — Growing field, combines coding + design\n4. **ML Engineer** — Emerging opportunity with your Python skills\n\nWould you like me to dive deeper into any of these paths?",
-];
 
 export default function ChatUI() {
   const [messages, setMessages] = useState([
@@ -22,10 +16,33 @@ export default function ChatUI() {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [sessionId, setSessionId] = useState(() => chatSession.getActiveSessionId());
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  let responseIndex = useRef(0);
+
+  // Load existing chat history if session exists
+  useEffect(() => {
+    const existingSession = chatSession.getActiveSessionId();
+    if (existingSession) {
+      setSessionId(existingSession);
+      chatbotService.getHistory(existingSession)
+        .then((data) => {
+          const history = data?.data?.messages || data?.messages || [];
+          if (Array.isArray(history) && history.length > 0) {
+            const mapped = history.map((msg, i) => ({
+              id: Date.now() + i,
+              text: msg.content || msg.text || msg.message || '',
+              isBot: msg.role === 'assistant' || msg.isBot === true,
+            }));
+            setMessages((prev) => [...prev, ...mapped]);
+          }
+        })
+        .catch(() => {
+          // Session history load failed — continue with fresh chat
+        });
+    }
+  }, []);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -40,17 +57,6 @@ export default function ChatUI() {
     return () => clearInterval(interval);
   }, []);
 
-  const simulateTyping = (text) => {
-    return new Promise((resolve) => {
-      setIsTyping(true);
-      const delay = Math.min(1000 + text.length * 10, 3000);
-      setTimeout(() => {
-        setIsTyping(false);
-        resolve();
-      }, delay);
-    });
-  };
-
   const handleSend = async () => {
     const trimmed = input.trim();
     if (!trimmed || isTyping) return;
@@ -58,24 +64,32 @@ export default function ChatUI() {
     const userMsg = { id: Date.now(), text: trimmed, isBot: false };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
+    setIsTyping(true);
 
     try {
-      // Try backend first
-      const response = await chatbotService.sendMessage(trimmed, messages);
-      await simulateTyping(response.message || response.reply);
-      const botMsg = {
+      const response = await chatbotService.sendMessage(trimmed, sessionId);
+      const replyText = response?.data?.reply || response?.reply || response?.data?.message || response?.message || 'I received your message but couldn\'t generate a response. Please try again.';
+
+      // Persist session ID for conversation continuity
+      const newSessionId = response?.data?.sessionId || response?.sessionId;
+      if (newSessionId) {
+        setSessionId(newSessionId);
+        chatSession.setActiveSessionId(newSessionId);
+      }
+
+      setIsTyping(false);
+      const botMsg = { id: Date.now() + 1, text: replyText, isBot: true };
+      setMessages((prev) => [...prev, botMsg]);
+    } catch (err) {
+      setIsTyping(false);
+      const errorText = err.response?.data?.message || 'AI service is temporarily unavailable. Please try again in a moment.';
+      const errorMsg = {
         id: Date.now() + 1,
-        text: response.message || response.reply,
+        text: errorText,
         isBot: true,
+        isError: true,
       };
-      setMessages((prev) => [...prev, botMsg]);
-    } catch {
-      // Fall back to demo responses
-      const demoText = DEMO_RESPONSES[responseIndex.current % DEMO_RESPONSES.length];
-      responseIndex.current += 1;
-      await simulateTyping(demoText);
-      const botMsg = { id: Date.now() + 1, text: demoText, isBot: true };
-      setMessages((prev) => [...prev, botMsg]);
+      setMessages((prev) => [...prev, errorMsg]);
     }
 
     inputRef.current?.focus();
@@ -90,7 +104,8 @@ export default function ChatUI() {
 
   const clearChat = () => {
     setMessages([messages[0]]);
-    responseIndex.current = 0;
+    chatSession.clearActiveSession();
+    setSessionId(null);
   };
 
   return (
@@ -102,27 +117,37 @@ export default function ChatUI() {
         className="flex items-center justify-between mb-4 font-sans"
       >
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-white flex items-center gap-3">
+          <h1 className="text-2xl lg:text-3xl font-bold text-text-main font-display flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-ai-accent flex items-center justify-center glow-ai">
               <Bot className="w-5 h-5 text-white" />
             </div>
             AI Career Mentor
           </h1>
-          <p className="text-gray-400 mt-1 ml-[52px]">Your personal AI-powered career advisor</p>
+          <p className="text-text-muted mt-1 ml-[52px]">Your personal AI-powered career advisor</p>
         </div>
         <button
           onClick={clearChat}
-          className="p-2.5 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-surface transition-all cursor-pointer"
+          className="p-2.5 rounded-xl text-text-subtle hover:text-text-main hover:bg-surface-50 transition-all cursor-pointer"
           title="Clear chat"
+          aria-label="Clear chat history"
         >
           <Trash2 className="w-5 h-5" />
         </button>
       </motion.div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto glass-card p-4 lg:p-6 flex flex-col gap-4">
+      <div className="flex-1 overflow-y-auto glass-card p-4 lg:p-6 flex flex-col gap-4" role="log" aria-label="Chat messages">
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg.text} isBot={msg.isBot} />
+          <div key={msg.id}>
+            {msg.isError ? (
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-error-muted border border-error/20">
+                <AlertCircle className="w-4 h-4 text-error mt-0.5 shrink-0" />
+                <p className="text-sm text-error">{msg.text}</p>
+              </div>
+            ) : (
+              <MessageBubble message={msg.text} isBot={msg.isBot} />
+            )}
+          </div>
         ))}
         {isTyping && <MessageBubble isBot isTyping />}
         <div ref={messagesEndRef} />
@@ -140,7 +165,7 @@ export default function ChatUI() {
             <button
               key={suggestion}
               onClick={() => { setInput(suggestion); }}
-              className="shrink-0 px-3 py-2 rounded-xl text-xs font-medium text-ai-accent bg-ai-accent/10 border border-ai-accent/20 hover:bg-ai-accent/20 transition-all cursor-pointer whitespace-nowrap"
+              className="shrink-0 px-3 py-2 rounded-xl text-xs font-medium text-ai-accent bg-ai-accent-muted border border-ai-accent/20 hover:bg-ai-accent/15 transition-all cursor-pointer whitespace-nowrap"
             >
               <Sparkles className="w-3 h-3 inline mr-1.5" />
               {suggestion}
@@ -159,12 +184,13 @@ export default function ChatUI() {
             onKeyDown={handleKeyDown}
             placeholder={CHAT_PLACEHOLDER_MESSAGES[placeholderIndex]}
             rows={1}
-            className="w-full px-4 py-3 pr-4 rounded-2xl bg-surface border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-ai-accent/50 focus:ring-2 focus:ring-ai-accent/20 transition-all resize-none font-mono text-sm"
+            className="w-full px-4 py-3 pr-4 rounded-2xl bg-surface border border-border text-text-main placeholder-text-subtle focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all resize-none font-mono text-sm"
             style={{ minHeight: '48px', maxHeight: '120px' }}
             onInput={(e) => {
               e.target.style.height = '48px';
               e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
             }}
+            aria-label="Type your message"
           />
         </div>
         <motion.button
@@ -173,6 +199,7 @@ export default function ChatUI() {
           onClick={handleSend}
           disabled={!input.trim() || isTyping}
           className="w-12 h-12 rounded-2xl bg-gradient-to-r from-primary to-ai-accent flex items-center justify-center text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all shadow-lg glow-ai shrink-0"
+          aria-label="Send message"
         >
           <Send className="w-5 h-5" />
         </motion.button>
