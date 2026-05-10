@@ -1,29 +1,34 @@
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { TrendingUp, Award, BookOpen, Zap } from 'lucide-react';
-import { getSkillColor } from '../../../utils/helpers';
-import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card';
+import { TrendingUp, Award, BookOpen, Zap, ArrowRight } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
 
 /**
  * Skills overview widget showing extracted skills with proficiency bars.
  */
 export default function SkillsWidget({ skills = [] }) {
-  const displaySkills = skills.length > 0 ? skills : [];
+  const displaySkills = Array.isArray(skills) && skills.length > 0 ? skills : [];
 
   return (
     <Card className="h-full">
       <CardHeader className="flex flex-row items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center glow-primary shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-primary-muted flex items-center justify-center glow-primary shrink-0">
           <Zap className="w-5 h-5 text-primary" />
         </div>
         <div>
           <CardTitle>Skills Overview</CardTitle>
-          <p className="text-xs text-gray-500 font-mono mt-1">{displaySkills.length} skills detected</p>
+          <p className="text-xs text-text-subtle font-mono mt-1">{displaySkills.length} skills detected</p>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
         {displaySkills.length === 0 && (
-          <p className="text-sm text-gray-400">No resume-derived skills found yet.</p>
+          <EmptyState
+            icon={Zap}
+            title="No skills detected"
+            description="Upload your resume to extract and visualize your skills."
+          />
         )}
         {displaySkills.map((skill, index) => (
           <motion.div
@@ -33,10 +38,10 @@ export default function SkillsWidget({ skills = [] }) {
             transition={{ delay: index * 0.08 }}
           >
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm font-medium text-gray-300">{skill.name}</span>
-              <span className="text-xs font-mono text-gray-500">{skill.proficiency}%</span>
+              <span className="text-sm font-medium text-text-main">{skill.name}</span>
+              <span className="text-xs font-mono text-text-subtle">{skill.proficiency}%</span>
             </div>
-            <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+            <div className="h-2 rounded-full bg-surface-100 overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${skill.proficiency}%` }}
@@ -56,10 +61,10 @@ export default function SkillsWidget({ skills = [] }) {
  */
 export function StatCard({ icon: Icon, label, value, change, changeType = 'positive', color = 'primary', delay = 0 }) {
   const colorMap = {
-    primary: { bg: 'bg-primary/15', text: 'text-primary' },
-    accent: { bg: 'bg-ai-accent/15', text: 'text-ai-accent' },
-    success: { bg: 'bg-accent/15', text: 'text-accent' },
-    warning: { bg: 'bg-warning-500/15', text: 'text-warning-400' },
+    primary: { bg: 'bg-primary-muted', text: 'text-primary' },
+    ai: { bg: 'bg-ai-accent-muted', text: 'text-ai-accent' },
+    success: { bg: 'bg-success-muted', text: 'text-success' },
+    warning: { bg: 'bg-warning-muted', text: 'text-warning' },
   };
 
   return (
@@ -67,7 +72,7 @@ export function StatCard({ icon: Icon, label, value, change, changeType = 'posit
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="bg-surface rounded-xl border border-white/5 p-5 shadow-sm hover:border-white/10 transition-colors"
+      className="bg-surface rounded-xl border border-border p-5 shadow-sm hover:border-border-hover transition-colors"
     >
       <div className="flex items-center justify-between mb-3">
         <div className={`w-10 h-10 rounded-xl ${colorMap[color]?.bg || colorMap.primary.bg} flex items-center justify-center`}>
@@ -76,15 +81,15 @@ export function StatCard({ icon: Icon, label, value, change, changeType = 'posit
         {change && (
           <span className={`text-xs font-medium px-2 py-1 rounded-lg ${
             changeType === 'positive'
-              ? 'bg-accent/15 text-accent'
-              : 'bg-error/15 text-error'
+              ? 'bg-success-muted text-success'
+              : 'bg-error-muted text-error'
           }`}>
             {changeType === 'positive' ? '+' : ''}{change}
           </span>
         )}
       </div>
-      <div className="text-2xl font-bold text-white font-mono">{value}</div>
-      <div className="text-xs text-gray-500 mt-1">{label}</div>
+      <div className="text-2xl font-bold text-text-main font-mono">{value}</div>
+      <div className="text-xs text-text-subtle mt-1">{label}</div>
     </motion.div>
   );
 }
@@ -107,12 +112,12 @@ export function ProgressWidget({ progress = null }) {
   return (
     <Card className="h-full">
       <CardHeader className="flex flex-row items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
-          <TrendingUp className="w-5 h-5 text-accent" />
+        <div className="w-10 h-10 rounded-xl bg-success-muted flex items-center justify-center shrink-0">
+          <TrendingUp className="w-5 h-5 text-success" />
         </div>
         <div>
           <CardTitle>Learning Progress</CardTitle>
-          <p className="text-xs text-gray-500 font-mono mt-1">{data.streak} day streak 🔥</p>
+          <p className="text-xs text-text-subtle font-mono mt-1">{data.streak} day streak 🔥</p>
         </div>
       </CardHeader>
 
@@ -121,7 +126,7 @@ export function ProgressWidget({ progress = null }) {
         <div className="flex items-center justify-center mb-6">
           <div className="relative w-36 h-36">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255, 255, 255, 0.05)" strokeWidth="8" />
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--color-surface-100)" strokeWidth="8" />
               <motion.circle
                 cx="60" cy="60" r="52"
                 fill="none"
@@ -141,20 +146,20 @@ export function ProgressWidget({ progress = null }) {
               </defs>
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-3xl font-bold text-white font-mono">{percentage}%</span>
-              <span className="text-xs text-gray-500">Complete</span>
+              <span className="text-3xl font-bold text-text-main font-mono">{percentage}%</span>
+              <span className="text-xs text-text-subtle">Complete</span>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="text-center p-3 rounded-xl bg-white/5 border border-white/5">
-            <div className="text-lg font-bold text-white font-mono">{data.coursesCompleted}</div>
-            <div className="text-xs text-gray-500 mt-1">Completed</div>
+          <div className="text-center p-3 rounded-xl bg-surface-50 border border-border">
+            <div className="text-lg font-bold text-text-main font-mono">{data.coursesCompleted}</div>
+            <div className="text-xs text-text-subtle mt-1">Completed</div>
           </div>
-          <div className="text-center p-3 rounded-xl bg-white/5 border border-white/5">
-            <div className="text-lg font-bold text-white font-mono">{data.hoursLearned}h</div>
-            <div className="text-xs text-gray-500 mt-1">Learned</div>
+          <div className="text-center p-3 rounded-xl bg-surface-50 border border-border">
+            <div className="text-lg font-bold text-text-main font-mono">{data.hoursLearned}h</div>
+            <div className="text-xs text-text-subtle mt-1">Learned</div>
           </div>
         </div>
       </CardContent>
@@ -163,12 +168,12 @@ export function ProgressWidget({ progress = null }) {
 }
 
 /**
- * Quick actions widget.
+ * Quick actions widget — uses React Router Link (not <a>) to prevent full page reloads.
  */
 export function QuickActions() {
   const actions = [
     { icon: Award, label: 'Upload Resume', path: '/resume', color: 'primary' },
-    { icon: TrendingUp, label: 'View Career Paths', path: '/career', color: 'accent' },
+    { icon: TrendingUp, label: 'View Career Paths', path: '/career', color: 'ai' },
     { icon: BookOpen, label: 'Skill Gap Analysis', path: '/skill-gap', color: 'success' },
   ];
 
@@ -180,23 +185,29 @@ export function QuickActions() {
       <CardContent className="space-y-3">
         {actions.map((action, i) => {
           const colorMap = {
-            primary: 'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20',
-            accent: 'bg-ai-accent/10 text-ai-accent hover:bg-ai-accent/20 border border-ai-accent/20',
-            success: 'bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20',
+            primary: 'bg-primary-muted text-primary hover:bg-primary/15 border border-primary/15',
+            ai: 'bg-ai-accent-muted text-ai-accent hover:bg-ai-accent/15 border border-ai-accent/15',
+            success: 'bg-success-muted text-success hover:bg-success/15 border border-success/15',
           };
 
           return (
-            <motion.a
+            <motion.div
               key={action.label}
-              href={action.path}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 * i }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${colorMap[action.color]}`}
             >
-              <action.icon className="w-5 h-5 shrink-0" />
-              <span className="font-medium text-sm text-gray-300">{action.label}</span>
-            </motion.a>
+              <Link
+                to={action.path}
+                className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${colorMap[action.color]}`}
+              >
+                <div className="flex items-center gap-3">
+                  <action.icon className="w-5 h-5 shrink-0" />
+                  <span className="font-medium text-sm text-text-main">{action.label}</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-text-subtle group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </motion.div>
           );
         })}
       </CardContent>
