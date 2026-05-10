@@ -1,33 +1,148 @@
 @import "tailwindcss";
 
-/* ============================
-   DelphiMinds — SaaS Design System
-   ============================ */
+@custom-variant dark (&:is(.dark *));
 
-@theme {
-  /* Brand/Theme Colors */
-  --color-background: #0B0F19;
-  --color-surface: #111827;
-  --color-primary: #6366F1;
-  --color-accent: #22C55E;
-  --color-ai-accent: #8B5CF6;
+/* ============================================================
+   DelphiMinds — AI Career Intelligence Platform
+   Design System v2.0
+   
+   Palette: Sage + Ivory + Charcoal
+   Typography: Satoshi (headings) + Inter (body)
+   Aesthetic: Calm, editorial, premium, AI-native
+   
+   TOKEN GOVERNANCE:
+   ❌ No raw Tailwind colors (bg-gray-800, text-indigo-500)
+   ✅ Only semantic tokens (bg-surface, text-primary, text-muted)
+   ============================================================ */
+
+/* ---- Light Mode (Ivory) ---- */
+:root {
+  /* Backgrounds — layered depth system */
+  --color-background: #FAFAF8;
+  --color-surface: #FFFFFF;
+  --color-surface-50: #F5F5F3;
+  --color-surface-100: #EDEDE9;
+  --color-surface-200: #E3E3DF;
+
+  /* Text hierarchy */
+  --color-text-main: #1A1A1A;
+  --color-text-muted: #5C5C5C;
+  --color-text-subtle: #8A8A8A;
+
+  /* Borders */
+  --color-border: #E5E5E0;
+  --color-border-hover: #D0D0C8;
+
+  /* Primary — Sage */
+  --color-primary: #6B8F71;
+  --color-primary-hover: #5A7D60;
+  --color-primary-muted: rgba(107, 143, 113, 0.12);
+
+  /* AI Accent — Violet */
+  --color-ai-accent: #7C5CF6;
+  --color-ai-accent-hover: #6B4AE0;
+  --color-ai-accent-muted: rgba(124, 92, 246, 0.1);
+
+  /* Status colors */
+  --color-success: #22C55E;
+  --color-success-muted: rgba(34, 197, 94, 0.12);
+  --color-warning: #F59E0B;
+  --color-warning-muted: rgba(245, 158, 11, 0.12);
   --color-error: #EF4444;
+  --color-error-muted: rgba(239, 68, 68, 0.12);
 
-  /* Glass */
-  --color-glass: rgba(17, 24, 39, 0.6);
-  --color-glass-border: rgba(99, 102, 241, 0.15);
-  --color-glass-hover: rgba(31, 41, 55, 0.8);
+  /* Glass morphism */
+  --color-glass: rgba(255, 255, 255, 0.7);
+  --color-glass-border: rgba(107, 143, 113, 0.1);
+  --color-glass-hover: rgba(245, 245, 243, 0.8);
 
-  /* Fonts */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.08);
+  --shadow-glow-primary: 0 0 20px -5px rgba(107, 143, 113, 0.4);
+  --shadow-glow-ai: 0 0 30px -10px rgba(124, 92, 246, 0.5);
 }
 
-/* Base layer styles */
+/* ---- Dark Mode (Charcoal) ---- */
+.dark {
+  --color-background: #0C0F14;
+  --color-surface: #151922;
+  --color-surface-50: #1A1F2B;
+  --color-surface-100: #212735;
+  --color-surface-200: #2A3040;
+
+  --color-text-main: #F0F0EC;
+  --color-text-muted: #9CA3AF;
+  --color-text-subtle: #6B7280;
+
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-hover: rgba(255, 255, 255, 0.12);
+
+  --color-primary-muted: rgba(107, 143, 113, 0.15);
+  --color-ai-accent-muted: rgba(124, 92, 246, 0.12);
+  --color-success-muted: rgba(34, 197, 94, 0.15);
+  --color-warning-muted: rgba(245, 158, 11, 0.15);
+  --color-error-muted: rgba(239, 68, 68, 0.15);
+
+  --color-glass: rgba(21, 25, 34, 0.6);
+  --color-glass-border: rgba(107, 143, 113, 0.12);
+  --color-glass-hover: rgba(33, 39, 53, 0.8);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.4);
+  --shadow-glow-primary: 0 0 20px -5px rgba(107, 143, 113, 0.3);
+  --shadow-glow-ai: 0 0 30px -10px rgba(124, 92, 246, 0.4);
+}
+
+/* ---- Tailwind Theme Registration ---- */
+@theme {
+  /* Colors */
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-surface-50: var(--color-surface-50);
+  --color-surface-100: var(--color-surface-100);
+  --color-surface-200: var(--color-surface-200);
+
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-muted: var(--color-primary-muted);
+
+  --color-ai-accent: var(--color-ai-accent);
+  --color-ai-accent-hover: var(--color-ai-accent-hover);
+  --color-ai-accent-muted: var(--color-ai-accent-muted);
+
+  --color-success: var(--color-success);
+  --color-success-muted: var(--color-success-muted);
+  --color-warning: var(--color-warning);
+  --color-warning-muted: var(--color-warning-muted);
+  --color-error: var(--color-error);
+  --color-error-muted: var(--color-error-muted);
+
+  --color-text-main: var(--color-text-main);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-subtle: var(--color-text-subtle);
+  --color-border: var(--color-border);
+  --color-border-hover: var(--color-border-hover);
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Satoshi', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Shadows */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+}
+
+/* ---- Base Layer ---- */
 @layer base {
+  /* Scrollbar styling */
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-surface) transparent;
+    scrollbar-color: var(--color-surface-200) transparent;
   }
 
   *::-webkit-scrollbar {
@@ -40,37 +155,64 @@
   }
 
   *::-webkit-scrollbar-thumb {
-    background-color: var(--color-surface);
+    background-color: var(--color-border);
     border-radius: 9999px;
   }
 
+  /* Selection */
   ::selection {
     background-color: var(--color-primary);
     color: white;
   }
 
+  /* Body */
   body {
     font-family: var(--font-sans);
-    background: var(--color-background);
-    color: #f3f4f6;
+    background-color: var(--color-background);
+    color: var(--color-text-main);
     overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Headings use display font */
   h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
     font-weight: 600;
+    color: var(--color-text-main);
   }
 
+  /* Form elements */
   input, textarea, select {
     font-family: var(--font-sans);
   }
 
+  /* Monospace */
   code, pre, .font-mono {
     font-family: var(--font-mono);
   }
+
+  /* Accessibility: visible focus rings */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
-/* Utility layer */
+/* ---- Utility Layer ---- */
 @layer utilities {
+  /* ---- Glass Morphism ---- */
   .glass {
     background: var(--color-glass);
     backdrop-filter: blur(12px);
@@ -79,18 +221,19 @@
 
   .glass-card {
     background: var(--color-surface);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 1rem; /* xl */
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--color-border);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-md);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .glass-card:hover {
-    background: rgba(31, 41, 55, 0.8);
-    border-color: rgba(99, 102, 241, 0.3);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(139, 92, 246, 0.1);
+    background: var(--color-glass-hover);
+    border-color: var(--color-border-hover);
+    box-shadow: var(--shadow-lg);
   }
 
+  /* ---- Gradient Text ---- */
   .gradient-text {
     background: linear-gradient(135deg, var(--color-primary), var(--color-ai-accent));
     -webkit-background-clip: text;
@@ -98,6 +241,7 @@
     background-clip: text;
   }
 
+  /* ---- Gradient Border ---- */
   .gradient-border {
     position: relative;
   }
@@ -115,18 +259,72 @@
     pointer-events: none;
   }
 
+  /* ---- Glow Effects ---- */
   .glow-primary {
-    box-shadow: 0 0 20px -5px rgba(99, 102, 241, 0.5);
+    box-shadow: var(--shadow-glow-primary);
   }
 
   .glow-ai {
-    box-shadow: 0 0 30px -10px rgba(139, 92, 246, 0.6);
+    box-shadow: var(--shadow-glow-ai);
   }
 
+  /* ---- Background Mesh ---- */
   .bg-mesh {
     background-image:
-      radial-gradient(at 20% 30%, rgba(99, 102, 241, 0.06) 0px, transparent 50%),
-      radial-gradient(at 80% 20%, rgba(139, 92, 246, 0.05) 0px, transparent 50%),
-      radial-gradient(at 50% 90%, rgba(34, 197, 94, 0.03) 0px, transparent 50%);
+      radial-gradient(at 20% 30%, var(--color-primary-muted) 0px, transparent 50%),
+      radial-gradient(at 80% 20%, var(--color-ai-accent-muted) 0px, transparent 50%),
+      radial-gradient(at 50% 90%, var(--color-success-muted) 0px, transparent 50%);
+  }
+
+  /* ---- Shimmer / Skeleton Animation ---- */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-50) 0%,
+      var(--color-surface-100) 40%,
+      var(--color-surface-50) 80%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite ease-in-out;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ---- Pulse Slow ---- */
+  .animate-pulse-slow {
+    animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ---- Fade In ---- */
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- Slide Up ---- */
+  .animate-slide-up {
+    animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- Display Font Utility ---- */
+  .font-display {
+    font-family: var(--font-display);
   }
 }
