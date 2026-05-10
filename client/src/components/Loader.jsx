@@ -6,22 +6,22 @@ import { Sparkles } from 'lucide-react';
  */
 export function FullScreenLoader() {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-surface-0 bg-mesh">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background bg-mesh">
       <motion.div
         animate={{ rotate: 360 }}
         transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
         className="relative"
       >
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-ai-accent flex items-center justify-center">
           <Sparkles className="w-8 h-8 text-white" />
         </div>
-        <div className="absolute inset-0 rounded-2xl bg-brand-500/30 blur-xl animate-pulse-slow" />
+        <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-xl animate-pulse-slow" />
       </motion.div>
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
-        className="mt-6 text-sm text-slate-400 font-medium"
+        className="mt-6 text-sm text-text-muted font-medium"
       >
         Loading DelphiMinds...
       </motion.p>
@@ -39,10 +39,10 @@ export function SectionLoader({ text = 'Loading...' }) {
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-          className="w-10 h-10 rounded-full border-2 border-surface-200 border-t-brand-500"
+          className="w-10 h-10 rounded-full border-2 border-surface-100 border-t-primary"
         />
       </div>
-      <p className="mt-4 text-sm text-slate-500">{text}</p>
+      <p className="mt-4 text-sm text-text-muted">{text}</p>
     </div>
   );
 }
@@ -79,6 +79,13 @@ export function SkeletonStats({ count = 4 }) {
       ))}
     </div>
   );
+}
+
+/**
+ * Inline skeleton for single content blocks.
+ */
+export function SkeletonLine({ width = 'w-full', height = 'h-4' }) {
+  return <div className={`${width} ${height} rounded-lg shimmer`} />;
 }
 
 export default FullScreenLoader;
