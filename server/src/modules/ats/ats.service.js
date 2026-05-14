@@ -44,6 +44,7 @@ const getResumeForAnalysis = async (userId, resumeId) => {
 const composeResumeText = (parsedData = {}) => {
   const chunks = [
     toString(parsedData.summary),
+    toString(parsedData.rawText || parsedData.raw_text),
     toString(parsedData.experience),
     toString(parsedData.education),
     toString(parsedData.projects),
