@@ -28,6 +28,10 @@ export default function ResumeView({ resume = null }) {
     education: 'B.Tech Computer Science, IIT Delhi',
   };
 
+  const skills = Array.isArray(data.skills) ? data.skills : [];
+  const experienceItems = Array.isArray(data.experience) ? data.experience : [];
+  const experienceText = typeof data.experience === 'string' ? data.experience : '';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -69,7 +73,7 @@ export default function ResumeView({ resume = null }) {
       <div className="mb-6">
         <h4 className="text-sm font-medium text-slate-300 mb-3">Detected Skills</h4>
         <div className="flex flex-wrap gap-2">
-          {data.skills.map((skill) => (
+          {skills.map((skill) => (
             <span
               key={skill.name}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
@@ -87,20 +91,24 @@ export default function ResumeView({ resume = null }) {
       </div>
 
       {/* Experience */}
-      {data.experience && (
+      {(experienceItems.length > 0 || experienceText) && (
         <div className="mb-6">
           <h4 className="text-sm font-medium text-slate-300 mb-3">Experience</h4>
-          <div className="space-y-3">
-            {data.experience.map((exp, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-surface-100">
-                <div className="w-2 h-2 rounded-full bg-brand-500 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-white">{exp.title}</p>
-                  <p className="text-xs text-slate-500">{exp.company} • {exp.duration}</p>
+          {experienceItems.length > 0 ? (
+            <div className="space-y-3">
+              {experienceItems.map((exp, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-surface-100">
+                  <div className="w-2 h-2 rounded-full bg-brand-500 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-white">{exp.title}</p>
+                    <p className="text-xs text-slate-500">{exp.company} • {exp.duration}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400 whitespace-pre-line">{experienceText}</p>
+          )}
         </div>
       )}
 
