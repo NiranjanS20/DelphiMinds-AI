@@ -93,6 +93,27 @@ const findResumeByIdForUser = async (id, userId, client) => {
   return mapResume(result.rows[0]);
 };
 
+const listResumesByUser = async (userId, { limit = 20, offset = 0 } = {}, client) => {
+  const safeLimit = Math.max(1, Math.min(50, Number(limit) || 20));
+  const safeOffset = Math.max(0, Number(offset) || 0);
+
+  const result = await getExecutor(client).query(
+    `
+      SELECT *, COUNT(*) OVER()::int AS total_count
+      FROM resumes
+      WHERE user_id = $1
+      ORDER BY COALESCE(parsed_at, created_at) DESC, created_at DESC
+      LIMIT $2 OFFSET $3
+    `,
+    [userId, safeLimit, safeOffset]
+  );
+
+  return {
+    resumes: result.rows.map(mapResume),
+    total: Number(result.rows[0]?.total_count || 0),
+  };
+};
+
 const findLatestResumeByUser = async (userId, client) => {
   const result = await getExecutor(client).query(
     `
@@ -117,4 +138,5 @@ module.exports = {
   createResume,
   findResumeByIdForUser,
   findLatestResumeByUser,
+  listResumesByUser,
 };
