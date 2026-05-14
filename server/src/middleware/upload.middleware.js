@@ -9,7 +9,6 @@ const errorCodes = require('../utils/errorCodes');
 const allowedMimes = new Set([
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/msword',
 ]);
 
 const tempDir = path.resolve(process.cwd(), env.uploadRoot, 'temp');
@@ -25,12 +24,12 @@ const storage = multer.diskStorage({
 
 const fileFilter = (_req, file, cb) => {
   const ext = path.extname(file.originalname || '').toLowerCase();
-  const allowedExt = ['.pdf', '.doc', '.docx'].includes(ext);
+  const allowedExt = ['.pdf', '.docx'].includes(ext);
 
   if (!allowedMimes.has(file.mimetype) && !allowedExt) {
     return cb(
       new AppError(
-        'Only PDF or DOC/DOCX files are allowed',
+        'Only PDF or DOCX files are allowed',
         400,
         errorCodes.FILE_UPLOAD_ERROR
       )
