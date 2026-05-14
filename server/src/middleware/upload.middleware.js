@@ -3,6 +3,7 @@ const path = require('path');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const env = require('../config/env');
+const { getUploadPath } = require('../utils/uploadPaths');
 const { AppError } = require('./error.middleware');
 const errorCodes = require('../utils/errorCodes');
 
@@ -11,11 +12,26 @@ const allowedMimes = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]);
 
-const tempDir = path.resolve(process.cwd(), env.uploadRoot, 'temp');
-fs.mkdirSync(tempDir, { recursive: true });
+const tempDir = getUploadPath('temp');
+
+const ensureUploadDir = (dir, cb) => {
+  fs.promises
+    .mkdir(dir, { recursive: true })
+    .then(() => cb(null, dir))
+    .catch((error) => {
+      cb(
+        new AppError(
+          `Upload directory is not writable: ${dir}. On Render free instances, remove UPLOAD_ROOT or set it to uploads.`,
+          500,
+          errorCodes.FILE_UPLOAD_ERROR,
+          { path: dir, cause: error.message }
+        )
+      );
+    });
+};
 
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, tempDir),
+  destination: (_req, _file, cb) => ensureUploadDir(tempDir, cb),
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname || '').toLowerCase();
     cb(null, `${uuidv4()}${ext}`);
