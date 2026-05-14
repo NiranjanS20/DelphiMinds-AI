@@ -7,6 +7,9 @@ class ParseResumeResponse(BaseModel):
     skills: list[str] = Field(default_factory=list)
     experience: str = ""
     education: str = ""
+    summary: str = ""
+    raw_text: str = ""
+    metadata: dict = Field(default_factory=dict)
 
 
 class RecommendRequest(BaseModel):
