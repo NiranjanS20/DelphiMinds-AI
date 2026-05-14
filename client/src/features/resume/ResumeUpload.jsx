@@ -238,12 +238,18 @@ export default function ResumeUpload({ onUploadComplete }) {
               )}
 
               {/* Info chips */}
+              {result.Fallback && (
+                <div className="p-3 rounded-xl bg-warning-muted border border-warning/20 text-warning text-sm">
+                  Resume file was uploaded, but parsing could not extract readable content. Try a text-based PDF or DOCX file.
+                </div>
+              )}
+              
               <div className="flex flex-wrap gap-2">
                 {result.experience && (
-                  <Badge variant="primary">📅 {result.experience}</Badge>
+                  <Badge variant="primary">📅 Experience detected</Badge>
                 )}
                 {result.education && (
-                  <Badge variant="success">🎓 {result.education}</Badge>
+                  <Badge variant="success">🎓 Education detected</Badge>
                 )}
               </div>
 
@@ -251,7 +257,7 @@ export default function ResumeUpload({ onUploadComplete }) {
               <div>
                 <h4 className="text-sm font-medium text-text-main font-display mb-3">Extracted Skills</h4>
                 <div className="space-y-3">
-                  {Array.isArray(result.skills) && result.skills.map((skill, i) => (
+                  {Array.isArray(result.skills) && result.skills.length > 0 ? result.skills.map((skill, i) => (
                     <motion.div
                       key={skill.name || `${skill}-${i}`}
                       initial={{ opacity: 0, x: -10 }}
@@ -276,7 +282,9 @@ export default function ResumeUpload({ onUploadComplete }) {
                         />
                       </div>
                     </motion.div>
-                  ))}
+                  )) : (
+                    <p className="text-sm text-text-muted">No skills were extracted. Upload a text-based PDF or DOCX with a clear Skills section.</p>
+                  )}
                 </div>
               </div>
             </div>
