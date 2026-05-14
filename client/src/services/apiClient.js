@@ -33,6 +33,11 @@ const resolveCurrentUser = async () => {
 apiClient.interceptors.request.use(
   async (config) => {
     try {
+      if (config.data instanceof FormData) {
+        delete config.headers['Content-Type'];
+        delete config.headers['content-type'];
+      }
+      
       const user = await resolveCurrentUser();
       if (user) {
         const token = await user.getIdToken(/* forceRefresh */ false);
