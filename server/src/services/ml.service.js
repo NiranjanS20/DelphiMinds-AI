@@ -8,9 +8,18 @@ const MAX_RETRIES = 2;
 const ML_BASE_URL = (env.mlServiceUrl || 'http://localhost:8000').replace(/\/$/, '');
 
 const fallbackParsePayload = (reason = 'ML service unavailable') => ({
+  parsedData: {
+    skills: [],
+    experience: '',
+    education: '',
+    summary: '',
+    rawText: '',
+  },
   skills: [],
   experience: '',
   education: '',
+  summary: '',
+  rawText: '',
   meta: {
     fallback: true,
     reason,
@@ -81,13 +90,28 @@ const callParseResume = async ({ filePath, originalName, mimetype }) => {
         maxBodyLength: Infinity,
       });
 
-      return {
+      const parsedData = {
         skills: toArray(response.data?.skills),
         experience: toString(response.data?.experience),
         education: toString(response.data?.education),
+        summary: toString(response.data?.summary),
+        rawText: toString(response.data?.raw_text || response.data?.rawText),
+        metadata: response.data?.metadata && typeof response.data.metadata === 'object'
+          ? response.data.metadata
+          : {},
+      };
+
+      return {
+        parsedData,
+        skills: parsedData.skills,
+        experience: parsedData.experience,
+        education: parsedData.education,
+        summary: parsedData.summary,
+        rawText: parsedData.rawText,
         meta: {
           fallback: false,
           source: 'ml-service',
+          metadata: parsedData.metadata,
         },
       };
     } catch (error) {
