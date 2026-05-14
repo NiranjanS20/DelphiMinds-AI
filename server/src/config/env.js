@@ -23,6 +23,9 @@ const config = {
   DB_NAME: process.env.DB_NAME || 'delphiminds',
   DB_USER: process.env.DB_USER || 'postgres',
   DB_PASSWORD: process.env.DB_PASSWORD || 'postgres',
+  DB_SSL: String(process.env.DB_SSL || '').toLowerCase(),
+  DB_SSL_REJECT_UNAUTHORIZED:
+    String(process.env.DB_SSL_REJECT_UNAUTHORIZED || 'false').toLowerCase() === 'true',
 
   FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID || '',
   FIREBASE_SERVICE_ACCOUNT_JSON: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '',
@@ -78,6 +81,8 @@ module.exports = {
   dbName: config.DB_NAME,
   dbUser: config.DB_USER,
   dbPassword: config.DB_PASSWORD,
+  dbSsl: config.DB_SSL,
+  dbSslRejectUnauthorized: config.DB_SSL_REJECT_UNAUTHORIZED,
 
   firebaseProjectId: config.FIREBASE_PROJECT_ID,
   firebaseServiceAccountJson: config.FIREBASE_SERVICE_ACCOUNT_JSON,
