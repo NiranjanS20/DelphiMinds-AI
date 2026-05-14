@@ -35,12 +35,21 @@ const uploadResume = async (authUser, file) => {
   const mlResult = await mlService.parseResume(storedFile);
 
   const parsedData = {
-    ...mlResult.parsedData,
-    skills: mlResult.skills || [],
-    experience: mlResult.parsedData?.experience || '',
-    education: mlResult.parsedData?.education || '',
+    ...(mlResult.parsedData || {}),
+    skills: mlResult.skills || mlResult.parsedData?.skills || [],
+    experience: mlResult.parsedData?.experience || mlResult.experience || '',
+    education: mlResult.parsedData?.education || mlResult.education || '',
+    summary: mlResult.parsedData?.summary || mlResult.summary || '',
+    rawText: mlResult.parsedData?.rawText || mlResult.rawText || '',
     source: 'ml-service',
   };
+
+  const hasParsedContent =
+    parsedData.rawText ||
+    parsedData.summary ||
+    parsedData.experience ||
+    parsedData.education ||
+    (Array.isArray(parsedData.skills) && parsedData.skills.length > 0);
 
   const mlMeta = {
     ...(mlResult.meta || {}),
@@ -55,7 +64,7 @@ const uploadResume = async (authUser, file) => {
         resumeId: resume.id,
         parsedData,
         mlMeta,
-        status: mlResult.meta?.fallback ? 'failed' : 'parsed',
+        status: hasParsedContent && !mlResult.meta?.fallback ? 'parsed' : 'failed',
       },
       client
     );
@@ -89,6 +98,22 @@ const uploadResume = async (authUser, file) => {
   };
 };
 
+const getLatestResume = async (authUser) => {
+  const user = await userService.ensureUserFromFirebase(authUser);
+  const resume = await resumeModel.findLatestResumeByUser(user.id);
+
+  if (!resume) {
+    throw new AppError('Resume not found', 404, errorCodes.NOT_FOUND);
+  }
+
+  return resume;
+};
+
+const getResumeHistory = async (authUser, options = {}) => {
+  const user = await userService.ensureUserFromFirebase(authUser);
+  return resumeModel.listResumesByUser(user.id, options);
+};
+
 const getResumeById = async (authUser, resumeId) => {
   if (!validateResumeId(resumeId)) {
     throw new AppError('Invalid resume ID', 400, errorCodes.VALIDATION_ERROR);
@@ -109,4 +134,6 @@ module.exports = {
   saveParsedData,
   uploadResume,
   getResumeById,
+  getLatestResume,
+  getResumeHistory,
 };
