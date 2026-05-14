@@ -17,7 +17,7 @@ from app.services.ats_analyzer import analyze_ats_payload
 from app.services.embedding_service import EmbeddingService
 from app.services.recommender import recommend_careers
 from app.services.resume_parser import ResumeParseError, parse_resume_text
-from app.services.skill_extractor import extract_education, extract_experience, extract_skills
+from app.services.skill_extractor import extract_education, extract_experience, extract_skills, extract_summary
 
 
 router = APIRouter(tags=["ml"])
@@ -59,11 +59,19 @@ async def parse_resume(file: UploadFile = File(...)) -> ParseResumeResponse:
         )
 
     try:
-        text = parse_resume_text(file_bytes, filename)
+        parsed_text = parse_resume_text(file_bytes, filename)
+        text = parsed_text.text
         return ParseResumeResponse(
             skills=extract_skills(text),
             experience=extract_experience(text),
             education=extract_education(text),
+            summary=extract_summary(text),
+            raw_text=parsed_text.plain_text,
+            metadata={
+                "filename": filename,
+                "word_count": parsed_text.word_count,
+                "page_count": parsed_text.page_count,
+            },
         )
     except ResumeParseError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
