@@ -1,10 +1,21 @@
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const env = require('../config/env');
+const { getUploadPath } = require('../utils/uploadPaths');
+const { AppError } = require('../middleware/error.middleware');
+const errorCodes = require('../utils/errorCodes');
 
 const ensureDir = async (dir) => {
-  await fs.promises.mkdir(dir, { recursive: true });
+  try {
+    await fs.promises.mkdir(dir, { recursive: true });
+  } catch (error) {
+    throw new AppError(
+      `Upload directory is not writable: ${dir}. On Render free instances, remove UPLOAD_ROOT or set it to uploads.`,
+      500,
+      errorCodes.FILE_UPLOAD_ERROR,
+      { path: dir, cause: error.message }
+    );
+  }
 };
 
 const sanitizeFileName = (name) =>
@@ -26,7 +37,7 @@ const storeResumeFile = async (file) => {
   const safeBase = sanitizeFileName(path.basename(file.originalname || 'resume', ext));
   const finalName = `${safeBase}-${uuidv4()}${ext.toLowerCase()}`;
 
-  const resumeDir = path.resolve(process.cwd(), env.uploadRoot, 'resumes');
+  const resumeDir = getUploadPath('resumes');
   const finalPath = path.resolve(resumeDir, finalName);
 
   await ensureDir(resumeDir);
