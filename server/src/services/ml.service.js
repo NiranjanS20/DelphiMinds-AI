@@ -20,51 +20,58 @@ const fallbackParsePayload = (reason = 'ML service unavailable') => ({
   education: '',
   summary: '',
   rawText: '',
-  meta: {
-    fallback: true,
-    reason,
-  },
+  meta: { fallback: true, reason },
 });
 
 const fallbackRecommendationPayload = (reason = 'ML service unavailable') => ({
   recommendations: [],
   careers: [],
   skill_gaps: [],
-  meta: {
-    fallback: true,
-    reason,
-  },
+  meta: { fallback: true, reason },
 });
 
 const fallbackAtsPayload = (reason = 'ML service unavailable') => ({
   ats_score: 0,
-  breakdown: {
-    keyword_match: 0,
-    skill_relevance: 0,
-    completeness: 0,
-  },
+  breakdown: { keyword_match: 0, skill_relevance: 0, completeness: 0 },
   match_score: 0,
   matched_keywords: [],
   missing_keywords: [],
-  keyword_gap: {
-    missing_keywords: [],
-  },
+  keyword_gap: { missing_keywords: [] },
   improvement_suggestions: [
     'Add role-specific keywords from the job description.',
     'Strengthen your skills, experience, and education sections.',
     'Use measurable achievements aligned with the target role.',
   ],
-  meta: {
-    fallback: true,
-    reason,
-  },
+  meta: { fallback: true, reason },
 });
 
 const toArray = (value) => (Array.isArray(value) ? value : []);
-const toString = (value) => (typeof value === 'string' ? value : '');
+const toString = (value) => (typeof value === 'string' ? value.trim() : '');
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+// Normalize raw ML skill list to {name, category, proficiency} objects
+const normalizeSkillList = (skills = []) => {
+  return toArray(skills)
+    .map((skill) => {
+      if (typeof skill === 'string') {
+        return { name: skill.trim(), category: 'Extracted', proficiency: 70 };
+      }
+      if (skill && typeof skill === 'object') {
+        const name = toString(skill.name || skill.skill || '');
+        if (!name) return null;
+        const raw = Number(skill.proficiency ?? skill.level ?? 0);
+        let proficiency = 70;
+        if (Number.isFinite(raw) && raw > 0) {
+          proficiency = raw <= 10 ? Math.min(100, Math.round(raw * 10)) : Math.min(100, Math.round(raw));
+        }
+        return { name, category: skill.category || 'Extracted', proficiency };
+      }
+      return null;
+    })
+    .filter(Boolean);
 };
 
 const callParseResume = async ({ filePath, originalName, mimetype }) => {
@@ -86,24 +93,28 @@ const callParseResume = async ({ filePath, originalName, mimetype }) => {
 
       const response = await axios.post(endpoint, formData, {
         headers: formData.getHeaders(),
-        timeout: 25000,
+        timeout: 30000,
         maxBodyLength: Infinity,
       });
 
+      const data = response.data || {};
+      const rawSkills = toArray(data.skills);
+      const normalizedSkills = normalizeSkillList(rawSkills);
+
+      // Full parsed data including all text fields
       const parsedData = {
-        skills: toArray(response.data?.skills),
-        experience: toString(response.data?.experience),
-        education: toString(response.data?.education),
-        summary: toString(response.data?.summary),
-        rawText: toString(response.data?.raw_text || response.data?.rawText),
-        metadata: response.data?.metadata && typeof response.data.metadata === 'object'
-          ? response.data.metadata
-          : {},
+        skills: normalizedSkills,
+        experience: toString(data.experience),
+        education: toString(data.education),
+        summary: toString(data.summary),
+        rawText: toString(data.raw_text || data.rawText),
+        metadata: (data.metadata && typeof data.metadata === 'object') ? data.metadata : {},
+        source: 'ml-service',
       };
 
       return {
         parsedData,
-        skills: parsedData.skills,
+        skills: normalizedSkills,
         experience: parsedData.experience,
         education: parsedData.education,
         summary: parsedData.summary,
@@ -116,15 +127,9 @@ const callParseResume = async ({ filePath, originalName, mimetype }) => {
       };
     } catch (error) {
       attempt += 1;
-      logger.warn('ML parse attempt failed', {
-        attempt,
-        error: error.message,
-      });
-
+      logger.warn('ML parse attempt failed', { attempt, error: error.message });
       if (attempt > MAX_RETRIES) {
-        logger.error('ML parse failed, using fallback response', {
-          error: error.message,
-        });
+        logger.error('ML parse failed after retries, using fallback', { error: error.message });
         return fallbackParsePayload(error.message);
       }
     }
@@ -137,7 +142,11 @@ const callRecommendation = async (data = {}) => {
   const endpoint = ML_BASE_URL + '/recommend';
   const payload = {
     skills: toArray(data.skills)
-      .map((skill) => String(skill || '').trim())
+      .map((skill) => {
+        if (typeof skill === 'string') return skill.trim();
+        if (skill && typeof skill === 'object') return toString(skill.name || '');
+        return '';
+      })
       .filter(Boolean),
   };
 
@@ -146,36 +155,22 @@ const callRecommendation = async (data = {}) => {
     try {
       const response = await axios.post(endpoint, payload, {
         timeout: 20000,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-
       return {
         recommendations: toArray(response.data?.recommendations || response.data?.careers),
         careers: toArray(response.data?.careers),
         skill_gaps: toArray(response.data?.skill_gaps),
-        meta: {
-          fallback: false,
-          source: 'ml-service',
-        },
+        meta: { fallback: false, source: 'ml-service' },
       };
     } catch (error) {
       attempt += 1;
-      logger.warn('ML recommend attempt failed', {
-        attempt,
-        error: error.message,
-      });
-
+      logger.warn('ML recommend attempt failed', { attempt, error: error.message });
       if (attempt > MAX_RETRIES) {
-        logger.error('ML recommend failed, using fallback response', {
-          error: error.message,
-        });
         return fallbackRecommendationPayload(error.message);
       }
     }
   }
-
   return fallbackRecommendationPayload();
 };
 
@@ -185,7 +180,11 @@ const callAtsAnalysis = async (data = {}) => {
     job_description: toString(data.jobDescription),
     resume_text: toString(data.resumeText),
     resume_skills: toArray(data.resumeSkills)
-      .map((skill) => String(skill || '').trim())
+      .map((skill) => {
+        if (typeof skill === 'string') return skill.trim();
+        if (skill && typeof skill === 'object') return toString(skill.name || '');
+        return '';
+      })
       .filter(Boolean),
     resume_experience: toString(data.resumeExperience),
     resume_education: toString(data.resumeEducation),
@@ -196,75 +195,39 @@ const callAtsAnalysis = async (data = {}) => {
     try {
       const response = await axios.post(endpoint, payload, {
         timeout: 25000,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-
       const result = response.data || {};
       const keywordGap = result.keyword_gap || {};
-
       return {
         ats_score: Math.max(0, Math.min(100, toNumber(result.ats_score, 0))),
         breakdown: {
-          keyword_match: Math.max(
-            0,
-            Math.min(100, toNumber(result.breakdown?.keyword_match, 0))
-          ),
-          skill_relevance: Math.max(
-            0,
-            Math.min(100, toNumber(result.breakdown?.skill_relevance, 0))
-          ),
-          completeness: Math.max(
-            0,
-            Math.min(100, toNumber(result.breakdown?.completeness, 0))
-          ),
+          keyword_match: Math.max(0, Math.min(100, toNumber(result.breakdown?.keyword_match, 0))),
+          skill_relevance: Math.max(0, Math.min(100, toNumber(result.breakdown?.skill_relevance, 0))),
+          completeness: Math.max(0, Math.min(100, toNumber(result.breakdown?.completeness, 0))),
         },
         match_score: Math.max(0, Math.min(100, toNumber(result.match_score, 0))),
         matched_keywords: toArray(result.matched_keywords),
         missing_keywords: toArray(result.missing_keywords),
-        keyword_gap: {
-          missing_keywords: toArray(keywordGap.missing_keywords),
-        },
+        keyword_gap: { missing_keywords: toArray(keywordGap.missing_keywords) },
         improvement_suggestions: toArray(result.improvement_suggestions),
-        meta: {
-          fallback: false,
-          source: 'ml-service',
-        },
+        meta: { fallback: false, source: 'ml-service' },
       };
     } catch (error) {
       attempt += 1;
-      logger.warn('ML ATS analysis attempt failed', {
-        attempt,
-        error: error.message,
-      });
-
+      logger.warn('ML ATS analysis attempt failed', { attempt, error: error.message });
       if (attempt > MAX_RETRIES) {
-        logger.error('ML ATS analysis failed, using fallback response', {
-          error: error.message,
-        });
         return fallbackAtsPayload(error.message);
       }
     }
   }
-
   return fallbackAtsPayload();
 };
 
+// Main entry used by resume.service.js
 const parseResume = async (fileInfo) => {
   const mlResponse = await callParseResume(fileInfo || {});
-
-  return {
-    skills: mlResponse.skills || [],
-    parsedData: {
-      experience: mlResponse.experience || '',
-      education: mlResponse.education || '',
-    },
-    meta: mlResponse.meta || {
-      fallback: true,
-      reason: 'ML service unavailable',
-    },
-  };
+  return mlResponse; // Return full response so resume.service can persist everything
 };
 
 module.exports = {
