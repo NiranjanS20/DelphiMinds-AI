@@ -2,77 +2,94 @@ const axios = require('axios');
 const env = require('../config/env');
 const { AppError } = require('../middleware/error.middleware');
 const errorCodes = require('../utils/errorCodes');
+const logger = require('../utils/logger');
 
+/**
+ * Call Gemini API with correct request format for gemini-1.5-flash.
+ * Uses multi-turn `contents` array with system instruction separately.
+ */
 const callGemini = async ({ systemPrompt, message, history = [] }) => {
-  if (!env.geminiApiKey) {
-    throw new AppError(
-      'Gemini API key is not configured',
-      500,
-      errorCodes.EXTERNAL_SERVICE_ERROR
-    );
+  const apiKey = env.geminiApiKey;
+  if (!apiKey) {
+    throw new AppError('Gemini API key is not configured', 500, errorCodes.EXTERNAL_SERVICE_ERROR);
   }
 
-  const endpoint = `${env.geminiApiUrl.replace(/\/$/, '')}/models/${env.geminiModel}:generateContent?key=${env.geminiApiKey}`;
-  const turns = history
-    .slice(-8)
-    .map((item) => `${item.role === 'assistant' ? 'Assistant' : 'User'}: ${item.content || ''}`)
-    .join('\n');
+  const model = env.geminiModel || 'gemini-1.5-flash';
+  const baseUrl = (env.geminiApiUrl || 'https://generativelanguage.googleapis.com/v1beta').replace(/\/$/, '');
+  const endpoint = `${baseUrl}/models/${model}:generateContent?key=${apiKey}`;
 
-  const prompt = [
-    `System: ${systemPrompt}`,
-    turns ? `History:\n${turns}` : '',
-    `User: ${message}`,
-  ]
-    .filter(Boolean)
-    .join('\n\n');
+  // Build conversation turns - Gemini uses alternating user/model roles
+  const contents = [];
+
+  // Add history (must alternate user/model)
+  const safeHistory = Array.isArray(history) ? history.slice(-8) : [];
+  for (const item of safeHistory) {
+    if (!item || !item.content) continue;
+    contents.push({
+      role: item.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: String(item.content).slice(0, 1500) }],
+    });
+  }
+
+  // Add current user message
+  contents.push({
+    role: 'user',
+    parts: [{ text: String(message) }],
+  });
+
+  const requestBody = {
+    contents,
+    generationConfig: {
+      temperature: 0.4,
+      maxOutputTokens: 1024,
+    },
+  };
+
+  // Add system instruction if provided (supported in gemini-1.5-flash)
+  if (systemPrompt) {
+    requestBody.systemInstruction = {
+      parts: [{ text: String(systemPrompt) }],
+    };
+  }
 
   let attempt = 0;
   let lastError = null;
 
   while (attempt < 3) {
     try {
-      const response = await axios.post(
-        endpoint,
-        {
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.4,
-          },
-        },
-        {
-          timeout: 20000,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await axios.post(endpoint, requestBody, {
+        timeout: 25000,
+        headers: { 'Content-Type': 'application/json' },
+      });
 
       const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) {
-        throw new AppError(
-          'Gemini response was empty',
-          502,
-          errorCodes.EXTERNAL_SERVICE_ERROR
-        );
+        throw new AppError('Gemini response was empty', 502, errorCodes.EXTERNAL_SERVICE_ERROR);
       }
-
       return text;
     } catch (error) {
       attempt += 1;
       lastError = error;
-      if (attempt < 3) {
-        continue;
-      }
+      const status = error.response?.status;
+      const errData = error.response?.data;
+      logger.warn('Gemini call failed', { attempt, status, error: error.message, detail: JSON.stringify(errData).slice(0, 200) });
+
+      if (attempt < 3) continue;
     }
   }
 
   throw new AppError(
-    `Gemini call failed: ${lastError?.message || 'unknown error'}`,
+    `Gemini call failed after retries: ${lastError?.message || 'unknown error'}`,
     502,
     errorCodes.EXTERNAL_SERVICE_ERROR
   );
 };
 
-module.exports = {
-  callGemini,
+/**
+ * Simple text-only call (no history/system prompt) — used for skill extraction etc.
+ */
+const callGeminiSimple = async (prompt) => {
+  return callGemini({ message: prompt, systemPrompt: '', history: [] });
 };
+
+module.exports = { callGemini, callGeminiSimple };
