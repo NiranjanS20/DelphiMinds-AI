@@ -17,7 +17,7 @@ from app.services.ats_analyzer import analyze_ats_payload
 from app.services.embedding_service import EmbeddingService
 from app.services.recommender import recommend_careers
 from app.services.resume_parser import ResumeParseError, parse_resume_text
-from app.services.skill_extractor import extract_education, extract_experience, extract_skills, extract_summary
+from app.services.skill_extractor import extract_education, extract_experience, extract_skills
 
 
 router = APIRouter(tags=["ml"])
@@ -59,24 +59,84 @@ async def parse_resume(file: UploadFile = File(...)) -> ParseResumeResponse:
         )
 
     try:
-        parsed_text = parse_resume_text(file_bytes, filename)
-        text = parsed_text.text
+        text = parse_resume_text(file_bytes, filename)
         return ParseResumeResponse(
             skills=extract_skills(text),
             experience=extract_experience(text),
             education=extract_education(text),
-            summary=extract_summary(text),
-            raw_text=parsed_text.plain_text,
-            metadata={
-                "filename": filename,
-                "word_count": parsed_text.word_count,
-                "page_count": parsed_text.page_count,
-            },
+            raw_text=text,
         )
     except ResumeParseError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except Exception as exc:
         logger.exception("Unexpected resume parsing failure: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to parse resume.",
+        ) from exc
+    finally:
+        await file.close()
+
+
+# ---------------------------------------------------------------------------
+# V2: Gemini-powered structured extraction
+# ---------------------------------------------------------------------------
+from app.services.gemini_parser import parse_resume_to_json
+
+
+@router.post(
+    "/parse-resume-v2",
+    responses={
+        400: {"model": ErrorResponse},
+        413: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
+)
+async def parse_resume_v2(file: UploadFile = File(...)) -> dict:
+    """
+    Gemini-powered resume parser that returns a deeply structured
+    JSON envelope with skills, experience, education, projects,
+    AI analysis, career preferences, and gap analysis seeds.
+    """
+    filename = file.filename or "resume.pdf"
+    extension = Path(filename).suffix.lower()
+
+    if extension not in (".pdf",):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PDF files are supported by the v2 parser.",
+        )
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Empty file. Please upload a valid resume.",
+        )
+
+    max_size_bytes = settings.max_file_size_mb * 1024 * 1024
+    if len(file_bytes) > max_size_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File too large. Max allowed size is {settings.max_file_size_mb} MB.",
+        )
+
+    try:
+        result = parse_resume_to_json(file_bytes, filename)
+        return result
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except RuntimeError as exc:
+        logger.exception("Gemini resume parsing failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Gemini resume parsing failed. Please try again.",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Unexpected v2 resume parsing failure: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to parse resume.",
